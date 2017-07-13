@@ -64,6 +64,9 @@
     width: 98%;
     height: 98%;
 }
+.file-picker .fp-def-search {
+    margin-top: 0;
+}
 // Repositories on fp-repo-area (File Picker only)
 .file-picker .fp-list {
     list-style-type: none;
@@ -129,9 +132,10 @@
 }
 
 .fp-pathbar .fp-path-folder {
-    background: url('[[pix:theme|fp/path_folder]]') 0 3px no-repeat;
+    background: url('[[pix:theme|fp/path_folder]]') left 3px no-repeat;
+    background-size: 12px 12px;
     height: 12px;
-    margin-left: 4px;
+    margin-left: 12px;
 }
 
 /*rtl:raw:
@@ -141,7 +145,7 @@
 */
 
 .fp-pathbar .fp-path-folder-name {
-    margin-left: 32px;
+    margin-left: 24px;
 }
 // Icon view (File Picker and File Manager)
 .fp-iconview .fp-file {
@@ -204,12 +208,12 @@
 .file-picker .ygtvtn,
 .filemanager .ygtvtn {
     /*rtl:remove*/
-    background: url('[[pix:moodle|y/tn]]') 0 10px no-repeat;
+    background: url('[[pix:moodle|y/tn]]') 0 0 no-repeat;
     /*rtl:raw:
-    background: url('[[pix:moodle|y/tn_rtl]]') 2px 10px no-repeat;
+    background: url('[[pix:moodle|y/tn_rtl]]') 0 0 no-repeat;
     */
-    width: 17px;
-    height: 22px;
+    width: 19px;
+    height: 32px;
 }
 // first or middle sibling, collapsable
 .file-picker .ygtvtm,
@@ -261,12 +265,12 @@
 .file-picker .ygtvln,
 .filemanager .ygtvln {
     /*rtl:remove*/
-    background: url('[[pix:moodle|y/ln]]') 0 10px no-repeat;
+    background: url('[[pix:moodle|y/ln]]') 0 0 no-repeat;
     /*rtl:raw:
-    background: url('[[pix:moodle|y/ln_rtl]]') 2px 10px no-repeat;
+    background: url('[[pix:moodle|y/ln_rtl]]') 0 0 no-repeat;
     */
-    width: 17px;
-    height: 22px;
+    width: 19px;
+    height: 32px;
 }
 // Last sibling, collapsable
 .file-picker .ygtvlm,
@@ -324,9 +328,9 @@
 // the style for the empty cells that are used for rendering the depth of the node
 .file-picker .ygtvdepthcell,
 .filemanager .ygtvdepthcell {
-    background: url('[[pix:moodle|y/vline]]') 0 10px no-repeat;
+    background: url('[[pix:moodle|y/vline]]') 0 0 no-repeat;
     /*rtl:raw:
-    background-position: 2px 10px;
+    background-position: 0 0;
     */
     width: 17px;
     height: 32px;
@@ -633,12 +637,22 @@ a.ygtvspacer:hover {
 
 .fp-iconview .fp-file.fp-hasreferences .fp-reficons1 {
     background: url('[[pix:theme|fp/link]]') no-repeat;
+    /*rtl:raw:
+    transform: scaleX(-1);
+    */
+    /*rtl:ignore*/
     background-position: bottom right;
+    background-size: 16px 16px;
 }
 
 .fp-iconview .fp-file.fp-isreference .fp-reficons2 {
     background: url('[[pix:theme|fp/alias]]') no-repeat;
+    /*rtl:raw:
+    transform: scaleX(-1);
+    */
+    /*rtl:ignore*/
     background-position: bottom left;
+    background-size: 16px 16px;
 }
 
 .filemanager .fp-iconview .fp-file.fp-originalmissing .fp-thumbnail img {
@@ -682,20 +696,26 @@ a.ygtvspacer:hover {
     background: url('[[pix:theme|fp/link_sm]]') no-repeat 0 0;
     height: 100%;
     width: 100%;
+    /*rtl:raw:
+    transform: scaleX(-1);
+    */
     position: absolute;
     top: 8px;
     left: 17px;
-    z-index: 1000;
+    background-size: 16px 16px;
 }
 
 .filemanager .fp-filename-icon.fp-isreference .fp-reficons2 {
     background: url('[[pix:theme|fp/alias_sm]]') no-repeat 0 0;
     height: 100%;
     width: 100%;
+    /*rtl:raw:
+    transform: scaleX(-1);
+    */
     position: absolute;
     top: 9px;
     left: -6px;
-    z-index: 1001;
+    background-size: 16px 16px;
 }
 // Folder Context Menu (File Manager only)
 .filemanager .fp-contextmenu {

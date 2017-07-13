@@ -31,11 +31,12 @@ defined('MOODLE_INTERNAL') || die();
  * @return string The HTML
  */
 function message_popup_render_navbar_output(\renderer_base $renderer) {
-    global $USER, $DB, $CFG;
+    global $USER, $CFG;
 
     // Early bail out conditions.
     if (!isloggedin() || isguestuser() || user_not_fully_set_up($USER) ||
-        get_user_preferences('auth_forcepasswordchange')) {
+        get_user_preferences('auth_forcepasswordchange') ||
+        ($CFG->sitepolicy && !$USER->policyagreed && !is_siteadmin())) {
         return '';
     }
 
@@ -46,6 +47,8 @@ function message_popup_render_navbar_output(\renderer_base $renderer) {
         $context = [
             'userid' => $USER->id,
             'urls' => [
+                'seeall' => (new moodle_url('/message/index.php'))->out(),
+                'writeamessage' => (new moodle_url('/message/index.php', ['contactsfirst' => 1]))->out(),
                 'preferences' => (new moodle_url('/message/edit.php', ['id' => $USER->id]))->out(),
             ],
         ];
@@ -58,6 +61,7 @@ function message_popup_render_navbar_output(\renderer_base $renderer) {
         $context = [
             'userid' => $USER->id,
             'urls' => [
+                'seeall' => (new moodle_url('/message/output/popup/notifications.php'))->out(),
                 'preferences' => (new moodle_url('/message/notificationpreferences.php', ['userid' => $USER->id]))->out(),
             ],
         ];

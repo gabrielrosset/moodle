@@ -145,13 +145,15 @@ function enrol_get_plugin($name) {
 
     $location = "$CFG->dirroot/enrol/$name";
 
-    if (!file_exists("$location/lib.php")) {
-        return null;
-    }
-    include_once("$location/lib.php");
     $class = "enrol_{$name}_plugin";
     if (!class_exists($class)) {
-        return null;
+        if (!file_exists("$location/lib.php")) {
+            return null;
+        }
+        include_once("$location/lib.php");
+        if (!class_exists($class)) {
+            return null;
+        }
     }
 
     return new $class();
@@ -288,8 +290,11 @@ function enrol_get_shared_courses($user1, $user2, $preloadcontexts = false, $che
         return false;
     }
 
-    list($plugins, $params) = $DB->get_in_or_equal($plugins, SQL_PARAMS_NAMED, 'ee');
-    $params['enabled'] = ENROL_INSTANCE_ENABLED;
+    list($plugins1, $params1) = $DB->get_in_or_equal($plugins, SQL_PARAMS_NAMED, 'ee1');
+    list($plugins2, $params2) = $DB->get_in_or_equal($plugins, SQL_PARAMS_NAMED, 'ee2');
+    $params = array_merge($params1, $params2);
+    $params['enabled1'] = ENROL_INSTANCE_ENABLED;
+    $params['enabled2'] = ENROL_INSTANCE_ENABLED;
     $params['active1'] = ENROL_USER_ACTIVE;
     $params['active2'] = ENROL_USER_ACTIVE;
     $params['user1']   = $user1;
@@ -307,11 +312,12 @@ function enrol_get_shared_courses($user1, $user2, $preloadcontexts = false, $che
               FROM {course} c
               JOIN (
                 SELECT DISTINCT c.id
-                  FROM {enrol} e
-                  JOIN {user_enrolments} ue1 ON (ue1.enrolid = e.id AND ue1.status = :active1 AND ue1.userid = :user1)
-                  JOIN {user_enrolments} ue2 ON (ue2.enrolid = e.id AND ue2.status = :active2 AND ue2.userid = :user2)
-                  JOIN {course} c ON (c.id = e.courseid AND c.visible = 1)
-                 WHERE e.status = :enabled AND e.enrol $plugins
+                  FROM {course} c
+                  JOIN {enrol} e1 ON (c.id = e1.courseid AND e1.status = :enabled1 AND e1.enrol $plugins1)
+                  JOIN {user_enrolments} ue1 ON (ue1.enrolid = e1.id AND ue1.status = :active1 AND ue1.userid = :user1)
+                  JOIN {enrol} e2 ON (c.id = e2.courseid AND e2.status = :enabled2 AND e2.enrol $plugins2)
+                  JOIN {user_enrolments} ue2 ON (ue2.enrolid = e2.id AND ue2.status = :active2 AND ue2.userid = :user2)
+                 WHERE c.visible = 1
               ) ec ON ec.id = c.id
               $ctxjoin";
 
@@ -539,9 +545,11 @@ function enrol_add_course_navigation(navigation_node $coursenode, $course) {
  * @param string|array $fields
  * @param string $sort
  * @param int $limit max number of courses
+ * @param array $courseids the list of course ids to filter by
  * @return array
  */
-function enrol_get_my_courses($fields = NULL, $sort = 'visible DESC,sortorder ASC', $limit = 0) {
+function enrol_get_my_courses($fields = null, $sort = 'visible DESC,sortorder ASC',
+                              $limit = 0, $courseids = []) {
     global $DB, $USER;
 
     // Guest account does not have any courses
@@ -600,6 +608,12 @@ function enrol_get_my_courses($fields = NULL, $sort = 'visible DESC,sortorder AS
     $ccjoin = "LEFT JOIN {context} ctx ON (ctx.instanceid = c.id AND ctx.contextlevel = :contextlevel)";
     $params['contextlevel'] = CONTEXT_COURSE;
     $wheres = implode(" AND ", $wheres);
+
+    if (!empty($courseids)) {
+        list($courseidssql, $courseidsparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+        $wheres = sprintf("%s AND c.id %s", $wheres, $courseidssql);
+        $params = array_merge($params, $courseidsparams);
+    }
 
     //note: we can not use DISTINCT + text fields due to Oracle and MS limitations, that is why we have the subselect there
     $sql = "SELECT $coursefields $ccselect
@@ -1177,6 +1191,10 @@ function is_enrolled(context $context, $user = null, $withcapability = '', $only
  * Returns an array of joins, wheres and params that will limit the group of
  * users to only those enrolled and with given capability (if specified).
  *
+ * Note this join will return duplicate rows for users who have been enrolled
+ * several times (e.g. as manual enrolment, and as self enrolment). You may
+ * need to use a SELECT DISTINCT in your query (see get_enrolled_sql for example).
+ *
  * @param context $context
  * @param string $prefix optional, a prefix to the user id column
  * @param string|array $capability optional, may include a capability name, or array of names.
@@ -1738,6 +1756,7 @@ abstract class enrol_plugin {
         }
 
         $ue->modifierid = $USER->id;
+        $ue->timemodified = time();
         $DB->update_record('user_enrolments', $ue);
         context_course::instance($instance->courseid)->mark_dirty(); // reset enrol caches
 

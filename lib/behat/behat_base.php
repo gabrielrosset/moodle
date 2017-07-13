@@ -574,6 +574,41 @@ class behat_base extends Behat\MinkExtension\Context\RawMinkContext {
     }
 
     /**
+     * Ensures that the provided node has a attribute value set. This step can be used to check if specific
+     * JS has finished modifying the node.
+     *
+     * @throws ExpectationException
+     * @param NodeElement $node
+     * @param string $attribute attribute name
+     * @param string $attributevalue attribute value to check.
+     * @return void Throws an exception if it times out without the element being visible
+     */
+    protected function ensure_node_attribute_is_set($node, $attribute, $attributevalue) {
+
+        if (!$this->running_javascript()) {
+            return;
+        }
+
+        // Exception if it timesout and the element is still there.
+        $msg = 'The "' . $node->getXPath() . '" xpath node is not visible and it should be visible';
+        $exception = new ExpectationException($msg, $this->getSession());
+
+        // It will stop spinning once the $args[1]) == $args[2], and method returns true.
+        $this->spin(
+            function($context, $args) {
+                if ($args[0]->getAttribute($args[1]) == $args[2]) {
+                    return true;
+                }
+                return false;
+            },
+            array($node, $attribute, $attributevalue),
+            self::EXTENDED_TIMEOUT,
+            $exception,
+            true
+        );
+    }
+
+    /**
      * Ensures that the provided element is visible and we can interact with it.
      *
      * Returns the node in case other actions are interested in using it.
@@ -889,5 +924,42 @@ class behat_base extends Behat\MinkExtension\Context\RawMinkContext {
 
         // Look for exceptions.
         $this->look_for_exceptions();
+    }
+
+    /**
+     * Get the actual user in the behat session (note $USER does not correspond to the behat session's user).
+     * @return mixed
+     * @throws coding_exception
+     */
+    protected function get_session_user() {
+        global $DB;
+
+        $sid = $this->getSession()->getCookie('MoodleSession');
+        if (empty($sid)) {
+            throw new coding_exception('failed to get moodle session');
+        }
+        $userid = $DB->get_field('sessions', 'userid', ['sid' => $sid]);
+        if (empty($userid)) {
+            throw new coding_exception('failed to get user from seession id '.$sid);
+        }
+        return $DB->get_record('user', ['id' => $userid]);
+    }
+
+    /**
+     * Trigger click on node via javascript instead of actually clicking on it via pointer.
+     *
+     * This function resolves the issue of nested elements with click listeners or links - in these cases clicking via
+     * the pointer may accidentally cause a click on the wrong element.
+     * Example of issue: clicking to expand navigation nodes when the config value linkadmincategories is enabled.
+     * @param NodeElement $node
+     */
+    protected function js_trigger_click($node) {
+        if (!$this->running_javascript()) {
+            $node->click();
+        }
+        $this->ensure_node_is_visible($node); // Ensures hidden elements can't be clicked.
+        $xpath = $node->getXpath();
+        $script = "Syn.click({{ELEMENT}})";
+        $this->getSession()->getDriver()->triggerSynScript($xpath, $script);
     }
 }

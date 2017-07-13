@@ -138,6 +138,57 @@ class plugin_misplaced_exception extends moodle_exception {
 }
 
 /**
+ * Static class monitors performance of upgrade steps.
+ */
+class core_upgrade_time {
+    /** @var float Time at start of current upgrade (plugin/system) */
+    protected static $before;
+    /** @var float Time at end of last savepoint */
+    protected static $lastsavepoint;
+    /** @var bool Flag to indicate whether we are recording timestamps or not. */
+    protected static $isrecording = false;
+
+    /**
+     * Records current time at the start of the current upgrade item, e.g. plugin.
+     */
+    public static function record_start() {
+        self::$before = microtime(true);
+        self::$lastsavepoint = self::$before;
+        self::$isrecording = true;
+    }
+
+    /**
+     * Records current time at the end of a given numbered step.
+     *
+     * @param float $version Version number (may have decimals, or not)
+     */
+    public static function record_savepoint($version) {
+        global $CFG, $OUTPUT;
+
+        // In developer debug mode we show a notification after each individual save point.
+        if ($CFG->debugdeveloper && self::$isrecording) {
+            $time = microtime(true);
+
+            $notification = new \core\output\notification($version . ': ' .
+                    get_string('successduration', '', format_float($time - self::$lastsavepoint, 2)),
+                    \core\output\notification::NOTIFY_SUCCESS);
+            $notification->set_show_closebutton(false);
+            echo $OUTPUT->render($notification);
+            self::$lastsavepoint = $time;
+        }
+    }
+
+    /**
+     * Gets the time since the record_start function was called, rounded to 2 digits.
+     *
+     * @return float Elapsed time
+     */
+    public static function get_elapsed() {
+        return microtime(true) - self::$before;
+    }
+}
+
+/**
  * Sets maximum expected time needed for upgrade task.
  * Please always make sure that upgrade will not run longer!
  *
@@ -224,6 +275,8 @@ function upgrade_main_savepoint($result, $version, $allowabort=true) {
     // reset upgrade timeout to default
     upgrade_set_timeout();
 
+    core_upgrade_time::record_savepoint($version);
+
     // this is a safe place to stop upgrades if user aborts page loading
     if ($allowabort and connection_aborted()) {
         die;
@@ -267,6 +320,8 @@ function upgrade_mod_savepoint($result, $version, $modname, $allowabort=true) {
 
     // reset upgrade timeout to default
     upgrade_set_timeout();
+
+    core_upgrade_time::record_savepoint($version);
 
     // this is a safe place to stop upgrades if user aborts page loading
     if ($allowabort and connection_aborted()) {
@@ -312,6 +367,8 @@ function upgrade_block_savepoint($result, $version, $blockname, $allowabort=true
     // reset upgrade timeout to default
     upgrade_set_timeout();
 
+    core_upgrade_time::record_savepoint($version);
+
     // this is a safe place to stop upgrades if user aborts page loading
     if ($allowabort and connection_aborted()) {
         die;
@@ -352,6 +409,8 @@ function upgrade_plugin_savepoint($result, $version, $type, $plugin, $allowabort
     // Reset upgrade timeout to default
     upgrade_set_timeout();
 
+    core_upgrade_time::record_savepoint($version);
+
     // This is a safe place to stop upgrades if user aborts page loading
     if ($allowabort and connection_aborted()) {
         die;
@@ -371,6 +430,12 @@ function upgrade_stale_php_files_present() {
     global $CFG;
 
     $someexamplesofremovedfiles = array(
+        // Removed in 3.3.
+        '/badges/backpackconnect.php',
+        '/calendar/yui/src/info/assets/skins/sam/moodle-calendar-info.css',
+        '/competency/classes/external/exporter.php',
+        '/mod/forum/forum.js',
+        '/user/pixgroup.php',
         // Removed in 3.2.
         '/calendar/preferences.php',
         '/lib/alfresco/',
@@ -1502,6 +1567,7 @@ function print_upgrade_part_start($plugin, $installation, $verbose) {
             upgrade_log(UPGRADE_LOG_NORMAL, $plugin, 'Starting plugin installation');
         }
     } else {
+        core_upgrade_time::record_start();
         if (empty($plugin) or $plugin == 'moodle') {
             upgrade_log(UPGRADE_LOG_NORMAL, $plugin, 'Starting core upgrade');
         } else {
@@ -1532,7 +1598,13 @@ function print_upgrade_part_end($plugin, $installation, $verbose) {
         }
     }
     if ($verbose) {
-        $notification = new \core\output\notification(get_string('success'), \core\output\notification::NOTIFY_SUCCESS);
+        if ($installation) {
+            $message = get_string('success');
+        } else {
+            $duration = core_upgrade_time::get_elapsed();
+            $message = get_string('successduration', '', format_float($duration, 2));
+        }
+        $notification = new \core\output\notification($message, \core\output\notification::NOTIFY_SUCCESS);
         $notification->set_show_closebutton(false);
         echo $OUTPUT->render($notification);
         print_upgrade_separator();
@@ -2065,7 +2137,10 @@ function upgrade_fix_missing_root_folders_draft() {
         'filename' => '.',
         'userid' => 0, // Don't rely on any particular user for these system records.
         'filesize' => 0,
-        'contenthash' => sha1(''));
+        // Note: This does not use the file_storage API's hash calculator
+        // because access to core APIs is not allowed during upgrade.
+        'contenthash' => sha1(''),
+    );
     foreach ($rs as $r) {
         $r->pathnamehash = sha1("/$r->contextid/user/draft/$r->itemid/.");
         $DB->insert_record('files', (array)$r + $defaults);
@@ -2145,6 +2220,125 @@ function check_database_tables_row_format(environment_results $result) {
         }
     }
 
+    return null;
+}
+
+/**
+ * This function verfies that the database has tables using InnoDB Antelope row format.
+ *
+ * @param environment_results $result
+ * @return environment_results|null updated results object, or null if no Antelope table has been found.
+ */
+function check_mysql_file_format(environment_results $result) {
+    global $DB;
+
+    if ($DB->get_dbfamily() == 'mysql') {
+        $collation = $DB->get_dbcollation();
+        $collationinfo = explode('_', $collation);
+        $charset = reset($collationinfo);
+
+        if ($charset == 'utf8mb4') {
+            if ($DB->get_row_format() !== "Barracuda") {
+                $result->setInfo('mysql_full_unicode_support#File_format');
+                $result->setStatus(false);
+                return $result;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * This function verfies that the database has a setting of one file per table. This is required for 'utf8mb4'.
+ *
+ * @param environment_results $result
+ * @return environment_results|null updated results object, or null if innodb_file_per_table = 1.
+ */
+function check_mysql_file_per_table(environment_results $result) {
+    global $DB;
+
+    if ($DB->get_dbfamily() == 'mysql') {
+        $collation = $DB->get_dbcollation();
+        $collationinfo = explode('_', $collation);
+        $charset = reset($collationinfo);
+
+        if ($charset == 'utf8mb4') {
+            if (!$DB->is_file_per_table_enabled()) {
+                $result->setInfo('mysql_full_unicode_support#File_per_table');
+                $result->setStatus(false);
+                return $result;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * This function verfies that the database has the setting of large prefix enabled. This is required for 'utf8mb4'.
+ *
+ * @param environment_results $result
+ * @return environment_results|null updated results object, or null if innodb_large_prefix = 1.
+ */
+function check_mysql_large_prefix(environment_results $result) {
+    global $DB;
+
+    if ($DB->get_dbfamily() == 'mysql') {
+        $collation = $DB->get_dbcollation();
+        $collationinfo = explode('_', $collation);
+        $charset = reset($collationinfo);
+
+        if ($charset == 'utf8mb4') {
+            if (!$DB->is_large_prefix_enabled()) {
+                $result->setInfo('mysql_full_unicode_support#Large_prefix');
+                $result->setStatus(false);
+                return $result;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * This function checks the database to see if it is using incomplete unicode support.
+ *
+ * @param  environment_results $result $result
+ * @return environment_results|null updated results object, or null if unicode is fully supported.
+ */
+function check_mysql_incomplete_unicode_support(environment_results $result) {
+    global $DB;
+
+    if ($DB->get_dbfamily() == 'mysql') {
+        $collation = $DB->get_dbcollation();
+        $collationinfo = explode('_', $collation);
+        $charset = reset($collationinfo);
+
+        if ($charset == 'utf8') {
+            $result->setInfo('mysql_full_unicode_support');
+            $result->setStatus(false);
+            return $result;
+        }
+    }
+    return null;
+}
+
+/**
+ * Check if the site is being served using an ssl url.
+ *
+ * Note this does not really perform any request neither looks for proxies or
+ * other situations. Just looks to wwwroot and warn if it's not using https.
+ *
+ * @param  environment_results $result $result
+ * @return environment_results|null updated results object, or null if the site is https.
+ */
+function check_is_https(environment_results $result) {
+    global $CFG;
+
+    // Only if is defined, non-empty and whatever core tell us.
+    if (!empty($CFG->wwwroot) && !is_https()) {
+        $result->setInfo('site not https');
+        $result->setStatus(false);
+        return $result;
+    }
     return null;
 }
 
@@ -2325,13 +2519,19 @@ function check_unoconv_version(environment_results $result) {
 }
 
 /**
- * Checks for up-to-date TLS libraries.
+ * Checks for up-to-date TLS libraries. NOTE: this is not currently used, see MDL-57262.
  *
  * @param environment_results $result object to update, if relevant.
  * @return environment_results|null updated results or null if unoconv path is not executable.
  */
 function check_tls_libraries(environment_results $result) {
     global $CFG;
+
+    if (!function_exists('curl_version')) {
+        $result->setInfo('cURL PHP extension is not installed');
+        $result->setStatus(false);
+        return $result;
+    }
 
     if (!\core\upgrade\util::validate_php_curl_tls(curl_version(), PHP_ZTS)) {
         $result->setInfo('invalid ssl/tls configuration');
@@ -2356,6 +2556,12 @@ function check_tls_libraries(environment_results $result) {
  */
 function check_libcurl_version(environment_results $result) {
 
+    if (!function_exists('curl_version')) {
+        $result->setInfo('cURL PHP extension is not installed');
+        $result->setStatus(false);
+        return $result;
+    }
+
     // Supported version and version number.
     $supportedversion = 0x071304;
     $supportedversionstring = "7.19.4";
@@ -2375,4 +2581,107 @@ function check_libcurl_version(environment_results $result) {
     }
 
     return null;
+}
+
+/**
+ * Fix how auth plugins are called in the 'config_plugins' table.
+ *
+ * For legacy reasons, the auth plugins did not always use their frankenstyle
+ * component name in the 'plugin' column of the 'config_plugins' table. This is
+ * a helper function to correctly migrate the legacy settings into the expected
+ * and consistent way.
+ *
+ * @param string $plugin the auth plugin name such as 'cas', 'manual' or 'mnet'
+ */
+function upgrade_fix_config_auth_plugin_names($plugin) {
+    global $CFG, $DB, $OUTPUT;
+
+    $legacy = (array) get_config('auth/'.$plugin);
+    $current = (array) get_config('auth_'.$plugin);
+
+    // I don't want to rely on array_merge() and friends here just in case
+    // there was some crazy setting with a numerical name.
+
+    if ($legacy) {
+        $new = $legacy;
+    } else {
+        $new = [];
+    }
+
+    if ($current) {
+        foreach ($current as $name => $value) {
+            if (isset($legacy[$name]) && ($legacy[$name] !== $value)) {
+                // No need to pollute the output during unit tests.
+                if (!empty($CFG->upgraderunning)) {
+                    $message = get_string('settingmigrationmismatch', 'core_auth', [
+                        'plugin' => 'auth_'.$plugin,
+                        'setting' => s($name),
+                        'legacy' => s($legacy[$name]),
+                        'current' => s($value),
+                    ]);
+                    echo $OUTPUT->notification($message, \core\output\notification::NOTIFY_ERROR);
+
+                    upgrade_log(UPGRADE_LOG_NOTICE, 'auth_'.$plugin, 'Setting values mismatch detected',
+                        'SETTING: '.$name. ' LEGACY: '.$legacy[$name].' CURRENT: '.$value);
+                }
+            }
+
+            $new[$name] = $value;
+        }
+    }
+
+    foreach ($new as $name => $value) {
+        set_config($name, $value, 'auth_'.$plugin);
+        unset_config($name, 'auth/'.$plugin);
+    }
+}
+
+/**
+ * Populate the auth plugin settings with defaults if needed.
+ *
+ * As a result of fixing the auth plugins config storage, many settings would
+ * be falsely reported as new ones by admin/upgradesettings.php. We do not want
+ * to confuse admins so we try to reduce the bewilderment by pre-populating the
+ * config_plugins table with default values. This should be done only for
+ * disabled auth methods. The enabled methods have their settings already
+ * stored, so reporting actual new settings for them is valid.
+ *
+ * @param string $plugin the auth plugin name such as 'cas', 'manual' or 'mnet'
+ */
+function upgrade_fix_config_auth_plugin_defaults($plugin) {
+    global $CFG;
+
+    $pluginman = core_plugin_manager::instance();
+    $enabled = $pluginman->get_enabled_plugins('auth');
+
+    if (isset($enabled[$plugin])) {
+        // Do not touch settings of enabled auth methods.
+        return;
+    }
+
+    // We can't directly use {@link core\plugininfo\auth::load_settings()} here
+    // because the plugins are not fully upgraded yet. Instead, we emulate what
+    // that method does. We fetch a temporary instance of the plugin's settings
+    // page to get access to the settings and their defaults. Note we are not
+    // adding that temporary instance into the admin tree. Yes, this is a hack.
+
+    $plugininfo = $pluginman->get_plugin_info('auth_'.$plugin);
+    $adminroot = admin_get_root();
+    $ADMIN = $adminroot;
+    $auth = $plugininfo;
+
+    $section = $plugininfo->get_settings_section_name();
+    $settingspath = $plugininfo->full_path('settings.php');
+
+    if (file_exists($settingspath)) {
+        $settings = new admin_settingpage($section, 'Emulated settings page for auth_'.$plugin, 'moodle/site:config');
+        include($settingspath);
+
+        if ($settings) {
+            // Consistently with what admin/cli/upgrade.php does, apply the default settings twice.
+            // I assume this is done for theoretical cases when a default value depends on an other.
+            admin_apply_default_settings($settings, false);
+            admin_apply_default_settings($settings, false);
+        }
+    }
 }

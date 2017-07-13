@@ -439,6 +439,7 @@ $cache = '.var_export($cache, true).';
             'enrol'       => $CFG->dirroot.'/enrol',
             'error'       => null,
             'filepicker'  => null,
+            'fileconverter' => $CFG->dirroot.'/files/converter',
             'files'       => $CFG->dirroot.'/files',
             'filters'     => null,
             //'fonts'       => null, // Bogus.
@@ -525,6 +526,7 @@ $cache = '.var_export($cache, true).';
             'tool'          => $CFG->dirroot.'/'.$CFG->admin.'/tool',
             'cachestore'    => $CFG->dirroot.'/cache/stores',
             'cachelock'     => $CFG->dirroot.'/cache/locks',
+            'fileconverter' => $CFG->dirroot.'/files/converter',
         );
         $parents = array();
         $subplugins = array();
@@ -1029,7 +1031,7 @@ $cache = '.var_export($cache, true).';
      * Note: this does not verify the validity of plugin or type names.
      *
      * @param string $component
-     * @return array as (string)$type => (string)$plugin
+     * @return array two-items list of [(string)type, (string|null)name]
      */
     public static function normalize_component($component) {
         if ($component === 'moodle' or $component === 'core' or $component === '') {

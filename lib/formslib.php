@@ -211,6 +211,9 @@ abstract class moodleform {
         $this->_form->setDefault('_qf__'.$this->_formname, 1);
         $this->_form->_setDefaultRuleMessages();
 
+        // Hook to inject logic after the definition was provided.
+        $this->after_definition();
+
         // we have to know all input types before processing submission ;-)
         $this->_process_submission($method);
     }
@@ -969,6 +972,23 @@ abstract class moodleform {
     protected abstract function definition();
 
     /**
+     * After definition hook.
+     *
+     * This is useful for intermediate classes to inject logic after the definition was
+     * provided without requiring developers to call the parent {{@link self::definition()}}
+     * as it's not obvious by design. The 'intermediate' class is 'MyClass extends
+     * IntermediateClass extends moodleform'.
+     *
+     * Classes overriding this method should always call the parent. We may not add
+     * anything specifically in this instance of the method, but intermediate classes
+     * are likely to do so, and so it is a good practice to always call the parent.
+     *
+     * @return void
+     */
+    protected function after_definition() {
+    }
+
+    /**
      * Dummy stub method - override if you need to setup the form depending on current
      * values. This method is called after definition(), data submission and set_data().
      * All form setup that is dependent on form values should go in here.
@@ -1240,31 +1260,15 @@ abstract class moodleform {
      *                      $enhancement = 'smartselect';
      *                      $options = array('selectablecategories' => true|false)
      *
-     * @since Moodle 2.0
      * @param string|element $element form element for which Javascript needs to be initalized
      * @param string $enhancement which init function should be called
      * @param array $options options passed to javascript
      * @param array $strings strings for javascript
+     * @deprecated since Moodle 3.3 MDL-57471
      */
     function init_javascript_enhancement($element, $enhancement, array $options=array(), array $strings=null) {
-        global $PAGE;
-        if (is_string($element)) {
-            $element = $this->_form->getElement($element);
-        }
-        if (is_object($element)) {
-            $element->_generateId();
-            $elementid = $element->getAttribute('id');
-            $PAGE->requires->js_init_call('M.form.init_'.$enhancement, array($elementid, $options));
-            if (is_array($strings)) {
-                foreach ($strings as $string) {
-                    if (is_array($string)) {
-                        call_user_func_array(array($PAGE->requires, 'string_for_js'), $string);
-                    } else {
-                        $PAGE->requires->string_for_js($string, 'moodle');
-                    }
-                }
-            }
-        }
+        debugging('$mform->init_javascript_enhancement() is deprecated and no longer does anything. '.
+            'smartselect uses should be converted to the searchableselector form element.', DEBUG_DEVELOPER);
     }
 
     /**
@@ -1362,6 +1366,7 @@ abstract class moodleform {
         $_FILES = $simulatedsubmittedfiles;
         if ($formidentifier === null) {
             $formidentifier = get_called_class();
+            $formidentifier = str_replace('\\', '_', $formidentifier); // See MDL-56233 for more information.
         }
         $simulatedsubmitteddata['_qf__'.$formidentifier] = 1;
         $simulatedsubmitteddata['sesskey'] = sesskey();
@@ -1481,9 +1486,9 @@ class MoodleQuickForm extends HTML_QuickForm_DHTMLRulesTableless {
         }else {
             $this->updateAttributes(array('class'=>'mform'));
         }
-        $this->_reqHTML = '<img class="req" title="'.get_string('requiredelement', 'form').'" alt="'.get_string('requiredelement', 'form').'" src="'.$OUTPUT->pix_url('req') .'" />';
-        $this->_advancedHTML = '<img class="adv" title="'.get_string('advancedelement', 'form').'" alt="'.get_string('advancedelement', 'form').'" src="'.$OUTPUT->pix_url('adv') .'" />';
-        $this->setRequiredNote(get_string('somefieldsrequired', 'form', '<img alt="'.get_string('requiredelement', 'form').'" src="'.$OUTPUT->pix_url('req') .'" />'));
+        $this->_reqHTML = '<span class="req">' . $OUTPUT->pix_icon('req', get_string('requiredelement', 'form')) . '</span>';
+        $this->_advancedHTML = '<span class="adv">' . $OUTPUT->pix_icon('adv', get_string('advancedelement', 'form')) . '</span>';
+        $this->setRequiredNote(get_string('somefieldsrequired', 'form', $OUTPUT->pix_icon('req', get_string('requiredelement', 'form'))));
     }
 
     /**
@@ -2180,12 +2185,14 @@ class MoodleQuickForm extends HTML_QuickForm_DHTMLRulesTableless {
                     }
                     //for editor element, [text] is appended to the name.
                     $fullelementname = $elementName;
-                    if ($element->getType() == 'editor') {
-                        $fullelementname .= '[text]';
-                        //Add format to rule as moodleform check which format is supported by browser
-                        //it is not set anywhere... So small hack to make sure we pass it down to quickform
-                        if (is_null($rule['format'])) {
-                            $rule['format'] = $element->getFormat();
+                    if (is_object($element) && $element->getType() == 'editor') {
+                        if ($element->getType() == 'editor') {
+                            $fullelementname .= '[text]';
+                            // Add format to rule as moodleform check which format is supported by browser
+                            // it is not set anywhere... So small hack to make sure we pass it down to quickform.
+                            if (is_null($rule['format'])) {
+                                $rule['format'] = $element->getFormat();
+                            }
                         }
                     }
                     // Fix for bug displaying errors for elements in a group
@@ -2278,7 +2285,12 @@ require(["core/event", "jquery"], function(Event, $) {
                 $elementName);
             $valFunc = 'validate_' . $this->_formName . '_' . $escapedElementName . '(ev.target, \''.$escapedElementName.'\')';
 
-            $js .= '
+            if (!is_array($element)) {
+                $element = [$element];
+            }
+            foreach ($element as $elem) {
+                if (key_exists('id', $elem->_attributes)) {
+                    $js .= '
     function validate_' . $this->_formName . '_' . $escapedElementName . '(element, escapedName) {
       if (undefined == element) {
          //required element was not found, then let form be submitted without client side validation
@@ -2301,13 +2313,15 @@ require(["core/event", "jquery"], function(Event, $) {
       }
     }
 
-    document.getElementById(\'' . $element->_attributes['id'] . '\').addEventListener(\'blur\', function(ev) {
+    document.getElementById(\'' . $elem->_attributes['id'] . '\').addEventListener(\'blur\', function(ev) {
         ' . $valFunc . '
     });
-    document.getElementById(\'' . $element->_attributes['id'] . '\').addEventListener(\'change\', function(ev) {
+    document.getElementById(\'' . $elem->_attributes['id'] . '\').addEventListener(\'change\', function(ev) {
         ' . $valFunc . '
     });
 ';
+                }
+            }
             $validateJS .= '
       ret = validate_' . $this->_formName . '_' . $escapedElementName.'(frm.elements[\''.$elementName.'\'], \''.$escapedElementName.'\') && ret;
       if (!ret && !first_focus) {
@@ -2438,8 +2452,14 @@ require(["core/event", "jquery"], function(Event, $) {
             $elNames = array();
             foreach ($elsInGroup as $elInGroup){
                 if (is_a($elInGroup, 'HTML_QuickForm_group')) {
-                    // not sure if this would work - groups nested in groups
+                    // Groups nested in groups: append the group name to the element and then change it back.
+                    // We will be appending group name again in MoodleQuickForm_group::export_for_template().
+                    $oldname = $elInGroup->getName();
+                    if ($element->_appendName) {
+                        $elInGroup->setName($element->getName() . '[' . $oldname . ']');
+                    }
                     $elNames = array_merge($elNames, $this->_getElNamesRecursive($elInGroup));
+                    $elInGroup->setName($oldname);
                 } else {
                     $elNames[] = $element->getElementName($elInGroup->getName());
                 }
@@ -3085,12 +3105,14 @@ MoodleQuickForm::registerElementType('duration', "$CFG->libdir/form/duration.php
 MoodleQuickForm::registerElementType('editor', "$CFG->libdir/form/editor.php", 'MoodleQuickForm_editor');
 MoodleQuickForm::registerElementType('filemanager', "$CFG->libdir/form/filemanager.php", 'MoodleQuickForm_filemanager');
 MoodleQuickForm::registerElementType('filepicker', "$CFG->libdir/form/filepicker.php", 'MoodleQuickForm_filepicker');
+MoodleQuickForm::registerElementType('filetypes', "$CFG->libdir/form/filetypes.php", 'MoodleQuickForm_filetypes');
 MoodleQuickForm::registerElementType('grading', "$CFG->libdir/form/grading.php", 'MoodleQuickForm_grading');
 MoodleQuickForm::registerElementType('group', "$CFG->libdir/form/group.php", 'MoodleQuickForm_group');
 MoodleQuickForm::registerElementType('header', "$CFG->libdir/form/header.php", 'MoodleQuickForm_header');
 MoodleQuickForm::registerElementType('hidden', "$CFG->libdir/form/hidden.php", 'MoodleQuickForm_hidden');
 MoodleQuickForm::registerElementType('htmleditor', "$CFG->libdir/form/htmleditor.php", 'MoodleQuickForm_htmleditor');
 MoodleQuickForm::registerElementType('listing', "$CFG->libdir/form/listing.php", 'MoodleQuickForm_listing');
+MoodleQuickForm::registerElementType('defaultcustom', "$CFG->libdir/form/defaultcustom.php", 'MoodleQuickForm_defaultcustom');
 MoodleQuickForm::registerElementType('modgrade', "$CFG->libdir/form/modgrade.php", 'MoodleQuickForm_modgrade');
 MoodleQuickForm::registerElementType('modvisible', "$CFG->libdir/form/modvisible.php", 'MoodleQuickForm_modvisible');
 MoodleQuickForm::registerElementType('password', "$CFG->libdir/form/password.php", 'MoodleQuickForm_password');

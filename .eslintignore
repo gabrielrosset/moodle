@@ -56,7 +56,10 @@ lib/amd/src/chartjs-lazy.js
 lib/maxmind/GeoIp2/
 lib/maxmind/MaxMind/
 lib/ltiprovider/
-media/player/videojs/amd/src/
+lib/amd/src/truncate.js
+lib/fonts/
+media/player/videojs/amd/src/video-lazy.js
+media/player/videojs/amd/src/Youtube-lazy.js
 media/player/videojs/videojs/
 mod/assign/feedback/editpdf/fpdi/
 repository/s3/S3.php
@@ -73,6 +76,8 @@ theme/boost/amd/src/tab.js
 theme/boost/amd/src/tooltip.js
 theme/boost/amd/src/util.js
 theme/boost/amd/src/tether.js
+theme/boost/scss/fontawesome/
 theme/bootstrapbase/less/bootstrap/
 theme/bootstrapbase/javascript/html5shiv.js
 theme/bootstrapbase/amd/src/bootstrap.js
+theme/bootstrapbase/less/fontawesome/

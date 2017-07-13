@@ -43,10 +43,6 @@ class core_webservice_externallib_testcase extends externallib_advanced_testcase
 
         $this->resetAfterTest(true);
 
-        // This is the info we are going to check
-        set_config('release', '2.4dev (Build: 20120823)');
-        set_config('version', '2012083100.00');
-
         $maxbytes = 10485760;
         $userquota = 5242880;
         set_config('maxbytes', $maxbytes);
@@ -126,6 +122,12 @@ class core_webservice_externallib_testcase extends externallib_advanced_testcase
         $this->assertEquals(true, $siteinfo['usercanmanageownfiles']);
 
         $this->assertEquals(HOMEPAGE_MY, $siteinfo['userhomepage']);
+        $this->assertEquals($CFG->calendartype, $siteinfo['sitecalendartype']);
+        if (!empty($USER->calendartype)) {
+            $this->assertEquals($USER->calendartype, $siteinfo['usercalendartype']);
+        } else {
+            $this->assertEquals($CFG->calendartype, $siteinfo['usercalendartype']);
+        }
 
         // Now as admin.
         $this->setAdminUser();

@@ -11,6 +11,20 @@ body.behat-site {
     .dropdown-item {
         margin-top: 4px !important; /* stylelint-disable declaration-no-important */
     }
+
+    // Remove following after MDL-57172 is fixed.
+    &.drawer-ease {
+        -webkit-transition: initial;
+        -moz-transition: initial;
+        transition: initial;
+    }
+
+    [data-region="drawer"] {
+        -webkit-transition: initial;
+        -moz-transition: initial;
+        transition: initial;
+        position: absolute;
+    }
 }
 
 .phpinfo table,

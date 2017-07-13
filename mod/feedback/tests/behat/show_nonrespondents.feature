@@ -38,8 +38,7 @@ Feature: Show users who have not responded to the feedback survey
   Scenario: See users who have not responded
     # Set up a feedback.
     When I log in as "teacher1"
-    And I follow "Course 1"
-    And I turn editing mode on
+    And I am on "Course 1" course homepage with editing mode on
     And I add a "Feedback" to section "1" and I fill the form with:
       | Name                | Frogs                                             |
       | Description         | x                                                 |
@@ -55,7 +54,7 @@ Feature: Show users who have not responded to the feedback survey
 
     # Go in as student 1 and do the feedback.
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Frogs"
     And I follow "Answer the questions"
     And I set the field "Y/N?" to "Y"
@@ -64,9 +63,9 @@ Feature: Show users who have not responded to the feedback survey
 
     # Go in as teacher and check the users who haven't completed it.
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Frogs"
-    And I click on "Show non-respondents" "link" in the "Administration" "block"
+    And I navigate to "Show non-respondents" in current page administration
 
     # Should only show student 2; not student 1 (they did it) or 3 (not in grouping).
     Then I should see "Student 2"

@@ -89,7 +89,7 @@ define(['jquery', 'core/yui', 'core/notification', 'core/templates', 'core/fragm
         }
 
         // Copy data from notify students checkbox which was moved out of the form.
-        var checked = $('[data-region="grading-actions-form"] [name="sendstudentnotifications"]').val();
+        var checked = $('[data-region="grading-actions-form"] [name="sendstudentnotifications"]').prop("checked");
         $('.gradeform [name="sendstudentnotifications"]').val(checked);
     };
 
@@ -298,12 +298,10 @@ define(['jquery', 'core/yui', 'core/notification', 'core/templates', 'core/fragm
                         }.bind(this))
                         .fail(notification.exception);
                     }.bind(this)).fail(notification.exception);
+                    $('[data-region="review-panel"]').show();
                 } else {
                     this._region.hide();
-                    var reviewPanel = $('[data-region="review-panel"]');
-                    if (reviewPanel.length) {
-                        this._niceReplaceNodeContents(reviewPanel, '', '');
-                    }
+                    $('[data-region="review-panel"]').hide();
                     $(document).trigger('finish-loading-user');
                     // Tell behat we are friends again.
                     window.M.util.js_complete('mod-assign-loading-user');
@@ -347,6 +345,11 @@ define(['jquery', 'core/yui', 'core/notification', 'core/templates', 'core/fragm
      */
     GradingPanel.prototype.registerEventListeners = function() {
         var docElement = $(document);
+        var region = $(this._region);
+        // Add an event listener to prevent form submission when pressing enter key.
+        region.on('submit', 'form', function(e) {
+            e.preventDefault();
+        });
 
         docElement.on('user-changed', this._refreshGradingPanel.bind(this));
         docElement.on('save-changes', this._submitForm.bind(this));

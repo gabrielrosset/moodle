@@ -50,6 +50,10 @@
         border: 1px solid #e3e3e3;
         clear: both;
 
+        img {
+            max-width: 100%;
+        }
+
         .contacts-area {
             border-right: 1px solid #e3e3e3;
             height: 600px;
@@ -109,6 +113,7 @@
 
                 .searchfilterarea {
                     line-height: 20px;
+                    cursor: pointer;
 
                     .searchfilter {
                         float: left;
@@ -117,7 +122,6 @@
                     .searchfilterdelete {
                         float: left;
                         margin-left: 5px;
-                        cursor: pointer;
                     }
                 }
             }
@@ -966,7 +970,7 @@
             }
         }
 
-        .content {
+        > .content {
             height: 500px;
             @media (max-height: 670px) {
                 height: 400px;

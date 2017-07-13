@@ -76,9 +76,10 @@ class feedback_item_multichoicerated extends feedback_item_base {
     public function save_item() {
         global $DB;
 
-        if (!$item = $this->item_form->get_data()) {
+        if (!$this->get_data()) {
             return false;
         }
+        $item = $this->item;
 
         if (isset($item->clone_item) AND $item->clone_item) {
             $item->id = ''; //to clone this item
@@ -305,12 +306,19 @@ class feedback_item_multichoicerated extends feedback_item_base {
                     ['select', $inputname, $name, array('' => '') + $options, array('class' => $class)]);
         } else {
             $objs = array();
+            if (!array_key_exists(0, $options)) {
+                // Always add '0' as hidden element, otherwise form submit data may not have this element.
+                $objs[] = ['hidden', $inputname];
+            }
             foreach ($options as $idx => $label) {
                 $objs[] = ['radio', $inputname, '', $label, $idx];
             }
+            // Span to hold the element id. The id is used for drag and drop reordering.
+            $objs[] = ['static', '', '', html_writer::span('', '', ['id' => 'feedback_item_' . $item->id])];
             $separator = $info->horizontal ? ' ' : '<br>';
             $class .= ' multichoicerated-' . ($info->horizontal ? 'horizontal' : 'vertical');
             $el = $form->add_form_group_element($item, 'group_'.$inputname, $name, $objs, $separator, $class);
+            $form->set_element_type($inputname, PARAM_INT);
 
             // Set previously input values.
             $form->set_element_default($inputname, $form->get_item_value($item));
@@ -460,5 +468,27 @@ class feedback_item_multichoicerated extends feedback_item_base {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Return the analysis data ready for external functions.
+     *
+     * @param stdClass $item     the item (question) information
+     * @param int      $groupid  the group id to filter data (optional)
+     * @param int      $courseid the course id (optional)
+     * @return array an array of data with non scalar types json encoded
+     * @since  Moodle 3.3
+     */
+    public function get_analysed_for_external($item, $groupid = false, $courseid = false) {
+
+        $externaldata = array();
+        $data = $this->get_analysed($item, $groupid, $courseid);
+
+        if (!empty($data[2]) && is_array($data[2])) {
+            foreach ($data[2] as $d) {
+                $externaldata[] = json_encode($d);
+            }
+        }
+        return $externaldata;
     }
 }

@@ -22,8 +22,7 @@ Feature: tool_monitor_subscriptions
     And I log in as "admin"
     And I navigate to "Event monitoring rules" node in "Site administration > Reports"
     And I click on "Enable" "link"
-    And I am on site homepage
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Event monitoring rules" node in "Course administration > Reports"
     And I press "Add a new rule"
     And I set the following fields to these values:
@@ -103,7 +102,7 @@ Feature: tool_monitor_subscriptions
     Given I log in as "admin"
     And I follow "Preferences" in the user menu
     And I click on "Notification preferences" "link" in the "#page-content" "css_element"
-    And I click on ".preference-state" "css_element" in the "Notifications of rule subscriptions" "table_row"
+    And I click on "//td[@data-processor-name='popup']//label[@class='preference-state']" "xpath_element" in the "Notifications of rule subscriptions" "table_row"
     And I wait until the page is ready
     And I follow "Preferences" in the user menu
     And I follow "Event monitoring"
@@ -115,7 +114,7 @@ Feature: tool_monitor_subscriptions
     And I trigger cron
     And I am on site homepage
     When I click on ".popover-region-notifications" "css_element"
-    And I click on "View more" "link" in the ".popover-region-notifications" "css_element"
+    And I click on "View full notification" "link" in the ".popover-region-notifications" "css_element"
     Then I should see "New rule site level"
     And I should see "The course was viewed"
 
@@ -124,7 +123,7 @@ Feature: tool_monitor_subscriptions
     Given I log in as "teacher1"
     And I follow "Preferences" in the user menu
     And I click on "Notification preferences" "link" in the "#page-content" "css_element"
-    And I click on ".preference-state" "css_element" in the "Notifications of rule subscriptions" "table_row"
+    And I click on "//td[@data-processor-name='popup']//label[@class='preference-state']" "xpath_element" in the "Notifications of rule subscriptions" "table_row"
     And I wait until the page is ready
     And I follow "Preferences" in the user menu
     And I follow "Event monitoring"
@@ -132,12 +131,11 @@ Feature: tool_monitor_subscriptions
     And I follow "Subscribe to rule \"New rule course level\""
     And I should see "Subscription successfully created"
     And "#toolmonitorsubs_r0" "css_element" should exist
-    And I am on site homepage
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I trigger cron
     And I am on site homepage
     When I click on ".popover-region-notifications" "css_element"
-    And I click on "View more" "link" in the ".popover-region-notifications" "css_element"
+    And I click on "View full notification" "link" in the ".popover-region-notifications" "css_element"
     Then I should see "New rule course level"
     And I should see "The course was viewed"
 

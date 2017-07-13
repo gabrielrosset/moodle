@@ -15,8 +15,7 @@ Feature: In a book, create chapters and sub chapters
       | user | course | role |
       | teacher1 | C1 | editingteacher |
     And I log in as "teacher1"
-    And I follow "Course 1"
-    And I turn editing mode on
+    And I am on "Course 1" course homepage with editing mode on
     And I add a "Book" to section "1" and I fill the form with:
       | Name | Test book |
       | Description | A book about dreams! |
@@ -72,7 +71,7 @@ Feature: In a book, create chapters and sub chapters
     And "Delete chapter \"1. Dummy first chapter\"" "link" should exist in the "Table of contents" "block"
     And "Hide chapter \"1. Dummy first chapter\"" "link" should exist in the "Table of contents" "block"
     And "Add new chapter" "link" should exist in the "Table of contents" "block"
-    When I click on "Turn editing off" "link" in the "Administration" "block"
+    When I press "Turn editing off"
     Then "Edit chapter \"1. Dummy first chapter\"" "link" should not exist in the "Table of contents" "block"
     And "Delete chapter \"1. Dummy first chapter\"" "link" should not exist in the "Table of contents" "block"
     And "Hide chapter \"1. Dummy first chapter\"" "link" should not exist in the "Table of contents" "block"

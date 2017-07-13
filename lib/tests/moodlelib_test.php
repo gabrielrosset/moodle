@@ -625,12 +625,25 @@ class core_moodlelib_testcase extends advanced_testcase {
         $this->assertSame('/just/a/path', clean_param('/just/a/path', PARAM_LOCALURL));
         $this->assertSame('course/view.php?id=3', clean_param('course/view.php?id=3', PARAM_LOCALURL));
 
-        // Local absolute HTTPS.
+        // Local absolute HTTPS in a non HTTPS site.
+        $CFG->wwwroot = str_replace('https:', 'http:', $CFG->wwwroot); // Need to simulate non-https site.
         $httpsroot = str_replace('http:', 'https:', $CFG->wwwroot);
-        $CFG->loginhttps = false;
+        $CFG->loginhttps = false; // Not allowed.
         $this->assertSame('', clean_param($httpsroot, PARAM_LOCALURL));
         $this->assertSame('', clean_param($httpsroot . '/with/something?else=true', PARAM_LOCALURL));
-        $CFG->loginhttps = true;
+        $CFG->loginhttps = true; // Allowed.
+        $this->assertSame($httpsroot, clean_param($httpsroot, PARAM_LOCALURL));
+        $this->assertSame($httpsroot . '/with/something?else=true',
+            clean_param($httpsroot . '/with/something?else=true', PARAM_LOCALURL));
+
+        // Local absolute HTTPS in a HTTPS site.
+        $CFG->wwwroot = str_replace('https:', 'http:', $CFG->wwwroot);
+        $httpsroot = $CFG->wwwroot;
+        $CFG->loginhttps = false; // Always allowed.
+        $this->assertSame($httpsroot, clean_param($httpsroot, PARAM_LOCALURL));
+        $this->assertSame($httpsroot . '/with/something?else=true',
+            clean_param($httpsroot . '/with/something?else=true', PARAM_LOCALURL));
+        $CFG->loginhttps = true; // Always allowed.
         $this->assertSame($httpsroot, clean_param($httpsroot, PARAM_LOCALURL));
         $this->assertSame($httpsroot . '/with/something?else=true',
             clean_param($httpsroot . '/with/something?else=true', PARAM_LOCALURL));
@@ -1192,6 +1205,26 @@ class core_moodlelib_testcase extends advanced_testcase {
         } catch (moodle_exception $ex) {
             $this->assertInstanceOf('coding_exception', $ex);
         }
+    }
+
+    public function test_set_user_preference_for_current_user() {
+        global $USER;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        set_user_preference('test_pref', 2);
+        set_user_preference('test_pref', 1, $USER->id);
+        $this->assertEquals(1, get_user_preferences('test_pref'));
+    }
+
+    public function test_unset_user_preference_for_current_user() {
+        global $USER;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        set_user_preference('test_pref', 1);
+        unset_user_preference('test_pref', $USER->id);
+        $this->assertNull(get_user_preferences('test_pref'));
     }
 
     public function test_get_extra_user_fields() {
@@ -2793,7 +2826,7 @@ class core_moodlelib_testcase extends advanced_testcase {
         $user1 = $this->getDataGenerator()->create_user(array('maildisplay' => 1));
         $user2 = $this->getDataGenerator()->create_user(array('maildisplay' => 1));
         $user3 = $this->getDataGenerator()->create_user(array('maildisplay' => 0));
-        set_config('allowedemaildomains', 'example.com');
+        set_config('allowedemaildomains', "example.com\r\nmoodle.org");
 
         $subject = 'subject';
         $messagetext = 'message text';
@@ -2859,6 +2892,19 @@ class core_moodlelib_testcase extends advanced_testcase {
         $this->assertNotEquals($CFG->noreplyaddress, $result[0]->from);
         $this->assertEquals($CFG->noreplyaddress, $result[1]->from);
         $sink->close();
+
+        // Try to send an unsafe attachment, we should see an error message in the eventual mail body.
+        $attachment = '../test.txt';
+        $attachname = 'txt';
+
+        $sink = $this->redirectEmails();
+        email_to_user($user1, $user2, $subject, $messagetext, '', $attachment, $attachname);
+        $this->assertSame(1, $sink->count());
+        $result = $sink->get_messages();
+        $this->assertCount(1, $result);
+        $this->assertContains('error.txt', $result[0]->body);
+        $this->assertContains('Error in attachment.  User attempted to attach a filename with a unsafe name.', $result[0]->body);
+        $sink->close();
     }
 
     /**
@@ -2891,6 +2937,149 @@ class core_moodlelib_testcase extends advanced_testcase {
         $this->assertEquals(context_user::instance($user->id), $event->get_context());
         $this->assertEventContextNotUsed($event);
     }
+
+    /**
+     * Data provider for test_generate_confirmation_link
+     * @return Array of confirmation urls and expected resultant confirmation links
+     */
+    public function generate_confirmation_link_provider() {
+        global $CFG;
+        return [
+            "Simple name" => [
+                "username" => "simplename",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/simplename"
+            ],
+            "Period in between words in username" => [
+                "username" => "period.inbetween",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/period%2Einbetween"
+            ],
+            "Trailing periods in username" => [
+                "username" => "trailingperiods...",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/trailingperiods%2E%2E%2E"
+            ],
+            "At symbol in username" => [
+                "username" => "at@symbol",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/at%40symbol"
+            ],
+            "Dash symbol in username" => [
+                "username" => "has-dash",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/has-dash"
+            ],
+            "Underscore in username" => [
+                "username" => "under_score",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/under_score"
+            ],
+            "Many different characters in username" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => null,
+                "expected" => $CFG->wwwroot . "/login/confirm.php?data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom relative confirmation url" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => "/custom/local/url.php",
+                "expected" => $CFG->wwwroot . "/custom/local/url.php?data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom relative confirmation url with parameters" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => "/custom/local/url.php?with=param",
+                "expected" => $CFG->wwwroot . "/custom/local/url.php?with=param&data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom local confirmation url" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => $CFG->wwwroot . "/custom/local/url.php",
+                "expected" => $CFG->wwwroot . "/custom/local/url.php?data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom local confirmation url with parameters" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => $CFG->wwwroot . "/custom/local/url.php?with=param",
+                "expected" => $CFG->wwwroot . "/custom/local/url.php?with=param&data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom external confirmation url" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => "http://moodle.org/custom/external/url.php",
+                "expected" => "http://moodle.org/custom/external/url.php?data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom external confirmation url with parameters" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => "http://moodle.org/ext.php?with=some&param=eters",
+                "expected" => "http://moodle.org/ext.php?with=some&param=eters&data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+            "Custom external confirmation url with parameters" => [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmationurl" => "http://moodle.org/ext.php?with=some&data=test",
+                "expected" => "http://moodle.org/ext.php?with=some&data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E"
+            ],
+        ];
+    }
+
+    /**
+     * Test generate_confirmation_link
+     * @dataProvider generate_confirmation_link_provider
+     * @param string $username The name of the user
+     * @param string $confirmationurl The url the user should go to to confirm
+     * @param string $expected The expected url of the confirmation link
+     */
+    public function test_generate_confirmation_link($username, $confirmationurl, $expected) {
+        $this->resetAfterTest();
+        $sink = $this->redirectEmails();
+
+        $user = $this->getDataGenerator()->create_user(
+            [
+                "username" => $username,
+                "confirmed" => false,
+                "email" => 'test@example.com',
+            ]
+        );
+
+        send_confirmation_email($user, $confirmationurl);
+        $sink->close();
+        $messages = $sink->get_messages();
+        $message = array_shift($messages);
+        $messagebody = quoted_printable_decode($message->body);
+
+        $this->assertContains($expected, $messagebody);
+    }
+
+    /**
+     * Test generate_confirmation_link with custom admin link
+     */
+    public function test_generate_confirmation_link_with_custom_admin() {
+        global $CFG;
+
+        $this->resetAfterTest();
+        $sink = $this->redirectEmails();
+
+        $admin = $CFG->admin;
+        $CFG->admin = 'custom/admin/path';
+
+        $user = $this->getDataGenerator()->create_user(
+            [
+                "username" => "many_-.@characters@_@-..-..",
+                "confirmed" => false,
+                "email" => 'test@example.com',
+            ]
+        );
+        $confirmationurl = "/admin/test.php?with=params";
+        $expected = $CFG->wwwroot . "/" . $CFG->admin . "/test.php?with=params&data=/many_-%2E%40characters%40_%40-%2E%2E-%2E%2E";
+
+        send_confirmation_email($user, $confirmationurl);
+        $sink->close();
+        $messages = $sink->get_messages();
+        $message = array_shift($messages);
+        $messagebody = quoted_printable_decode($message->body);
+
+        $sink->close();
+        $this->assertContains($expected, $messagebody);
+
+        $CFG->admin = $admin;
+    }
+
 
     /**
      * Test remove_course_content deletes course contents
@@ -3223,17 +3412,17 @@ class core_moodlelib_testcase extends advanced_testcase {
      * @param string $email Email address for the from user.
      * @param int $display The user's email display preference.
      * @param bool $samecourse Are the users in the same course?
+     * @param string $config The CFG->allowedemaildomains config values
      * @param bool $result The expected result.
      * @dataProvider data_can_send_from_real_email_address
      */
-    public function test_can_send_from_real_email_address($email, $display, $samecourse, $result) {
-        global $DB;
+    public function test_can_send_from_real_email_address($email, $display, $samecourse, $config, $result) {
         $this->resetAfterTest();
 
         $fromuser = $this->getDataGenerator()->create_user();
         $touser = $this->getDataGenerator()->create_user();
         $course = $this->getDataGenerator()->create_course();
-        $alloweddomains = ['example.com'];
+        set_config('allowedemaildomains', $config);
 
         $fromuser->email = $email;
         $fromuser->maildisplay = $display;
@@ -3243,7 +3432,7 @@ class core_moodlelib_testcase extends advanced_testcase {
         } else {
             $this->getDataGenerator()->enrol_user($fromuser->id, $course->id, 'student');
         }
-        $this->assertEquals($result, can_send_from_real_email_address($fromuser, $touser, $alloweddomains));
+        $this->assertEquals($result, can_send_from_real_email_address($fromuser, $touser));
     }
 
     /**
@@ -3255,31 +3444,148 @@ class core_moodlelib_testcase extends advanced_testcase {
         return [
             // Test from email is in allowed domain.
             // Test that from display is set to show no one.
-            ['email' => 'fromuser@example.com', 'display' => core_user::MAILDISPLAY_HIDE,
-             'samecourse' => false, 'result' => false],
+            [
+                'email' => 'fromuser@example.com',
+                'display' => core_user::MAILDISPLAY_HIDE,
+                'samecourse' => false,
+                'config' => "example.com\r\ntest.com",
+                'result' => false
+            ],
             // Test that from display is set to course members only (course member).
-            ['email' => 'fromuser@example.com', 'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
-             'samecourse' => true, 'result' => true],
+            [
+                'email' => 'fromuser@example.com',
+                'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
+                'samecourse' => true,
+                'config' => "example.com\r\ntest.com",
+                'result' => true
+            ],
             // Test that from display is set to course members only (Non course member).
-            ['email' => 'fromuser@example.com', 'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
-             'samecourse' => false, 'result' => false],
-             // Test that from display is set to show everyone.
-            ['email' => 'fromuser@example.com', 'display' => core_user::MAILDISPLAY_EVERYONE,
-             'samecourse' => false, 'result' => true],
+            [
+                'email' => 'fromuser@example.com',
+                'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
+                'samecourse' => false,
+                'config' => "example.com\r\ntest.com",
+                'result' => false
+            ],
+            // Test that from display is set to show everyone.
+            [
+                'email' => 'fromuser@example.com',
+                'display' => core_user::MAILDISPLAY_EVERYONE,
+                'samecourse' => false,
+                'config' => "example.com\r\ntest.com",
+                'result' => true
+            ],
+            // Test a few different config value formats for parsing correctness.
+            [
+                'email' => 'fromuser@example.com',
+                'display' => core_user::MAILDISPLAY_EVERYONE,
+                'samecourse' => false,
+                'config' => "\n test.com\nexample.com \n",
+                'result' => true
+            ],
+            [
+                'email' => 'fromuser@example.com',
+                'display' => core_user::MAILDISPLAY_EVERYONE,
+                'samecourse' => false,
+                'config' => "\r\n example.com \r\n test.com \r\n",
+                'result' => true
+            ],
 
             // Test from email is not in allowed domain.
             // Test that from display is set to show no one.
-            ['email' => 'fromuser@moodle.com', 'display' => core_user::MAILDISPLAY_HIDE,
-             'samecourse' => false, 'result' => false],
-             // Test that from display is set to course members only (course member).
-            ['email' => 'fromuser@moodle.com', 'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
-             'samecourse' => true, 'result' => false],
-             // Test that from display is set to course members only (Non course member.
-            ['email' => 'fromuser@moodle.com', 'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
-             'samecourse' => false, 'result' => false],
-             // Test that from display is set to show everyone.
-            ['email' => 'fromuser@moodle.com', 'display' => core_user::MAILDISPLAY_EVERYONE,
-             'samecourse' => false, 'result' => false],
+            [   'email' => 'fromuser@moodle.com',
+                'display' => core_user::MAILDISPLAY_HIDE,
+                'samecourse' => false,
+                'config' => "example.com\r\ntest.com",
+                'result' => false
+            ],
+            // Test that from display is set to course members only (course member).
+            [   'email' => 'fromuser@moodle.com',
+                'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
+                'samecourse' => true,
+                'config' => "example.com\r\ntest.com",
+                'result' => false
+            ],
+            // Test that from display is set to course members only (Non course member.
+            [   'email' => 'fromuser@moodle.com',
+                'display' => core_user::MAILDISPLAY_COURSE_MEMBERS_ONLY,
+                'samecourse' => false,
+                'config' => "example.com\r\ntest.com",
+                'result' => false
+            ],
+            // Test that from display is set to show everyone.
+            [   'email' => 'fromuser@moodle.com',
+                'display' => core_user::MAILDISPLAY_EVERYONE,
+                'samecourse' => false,
+                'config' => "example.com\r\ntest.com",
+                'result' => false
+            ],
+            // Test a few erroneous config value and confirm failure.
+            [   'email' => 'fromuser@moodle.com',
+                'display' => core_user::MAILDISPLAY_EVERYONE,
+                'samecourse' => false,
+                'config' => "\r\n   \r\n",
+                'result' => false
+            ],
+            [   'email' => 'fromuser@moodle.com',
+                'display' => core_user::MAILDISPLAY_EVERYONE,
+                'samecourse' => false,
+                'config' => " \n   \n \n ",
+                'result' => false
+            ],
         ];
+    }
+
+    /**
+     * Test that generate_email_processing_address() returns valid email address.
+     */
+    public function test_generate_email_processing_address() {
+        global $CFG;
+        $this->resetAfterTest();
+
+        $data = (object)[
+            'id' => 42,
+            'email' => 'my.email+from_moodle@example.com',
+        ];
+
+        $modargs = 'B'.base64_encode(pack('V', $data->id)).substr(md5($data->email), 0, 16);
+
+        $CFG->maildomain = 'example.com';
+        $CFG->mailprefix = 'mdl+';
+        $this->assertTrue(validate_email(generate_email_processing_address(0, $modargs)));
+
+        $CFG->maildomain = 'mail.example.com';
+        $CFG->mailprefix = 'mdl-';
+        $this->assertTrue(validate_email(generate_email_processing_address(23, $modargs)));
+    }
+
+    /**
+     * Test safe method unserialize_array().
+     */
+    public function test_unserialize_array() {
+        $a = [1, 2, 3];
+        $this->assertEquals($a, unserialize_array(serialize($a)));
+        $this->assertEquals($a, unserialize_array(serialize($a)));
+        $a = ['a' => 1, 2 => 2, 'b' => 'cde'];
+        $this->assertEquals($a, unserialize_array(serialize($a)));
+        $this->assertEquals($a, unserialize_array(serialize($a)));
+        $a = ['a' => 1, 2 => 2, 'b' => 'c"d"e'];
+        $this->assertEquals($a, unserialize_array(serialize($a)));
+        $a = ['a' => 1, 2 => ['c' => 'd', 'e' => 'f'], 'b' => 'cde'];
+        $this->assertEquals($a, unserialize_array(serialize($a)));
+
+        // Can not unserialize if any string contains semicolons.
+        $a = ['a' => 1, 2 => 2, 'b' => 'c"d";e'];
+        $this->assertEquals(false, unserialize_array(serialize($a)));
+
+        // Can not unserialize if there are any objects.
+        $a = (object)['a' => 1, 2 => 2, 'b' => 'cde'];
+        $this->assertEquals(false, unserialize_array(serialize($a)));
+        $a = ['a' => 1, 2 => 2, 'b' => (object)['a' => 'cde']];
+        $this->assertEquals(false, unserialize_array(serialize($a)));
+
+        // Array used in the grader report.
+        $a = array('aggregatesonly' => [51, 34], 'gradesonly' => [21, 45, 78]);
+        $this->assertEquals($a, unserialize_array(serialize($a)));
     }
 }

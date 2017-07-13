@@ -160,6 +160,7 @@ $string['course:changeshortname'] = 'Change course short name';
 $string['course:changesummary'] = 'Change course summary';
 $string['course:enrolconfig'] = 'Configure enrol instances in courses';
 $string['course:enrolreview'] = 'Review course enrolments';
+$string['course:ignoreavailabilityrestrictions'] = 'Ignore availability restrictions';
 $string['course:ignorefilesizelimits'] = 'Use files larger than any file size restrictions';
 $string['course:isincompletionreports'] = 'Be shown on completion reports';
 $string['course:manageactivities'] = 'Manage activities';
@@ -395,7 +396,7 @@ $string['site:doclinks'] = 'Show links to offsite docs';
 $string['site:forcelanguage'] = 'Override course language';
 $string['site:import'] = 'Import other courses into a course';
 $string['site:maintenanceaccess'] = 'Access site while in maintenance mode';
-$string['site:manageallmessaging'] = 'Can perform all messaging actions on site';
+$string['site:manageallmessaging'] = 'Add, remove, block and unblock contacts for any user';
 $string['site:manageblocks'] = 'Manage blocks on a page';
 $string['site:mnetloginfromremote'] = 'Login from a remote application via MNet';
 $string['site:mnetlogintoremote'] = 'Roam to a remote application via MNet';
@@ -458,6 +459,3 @@ $string['whydoesusernothavecap'] = 'Why does {$a->fullname} not have capability 
 $string['xroleassignments'] = '{$a}\'s role assignments';
 $string['xuserswiththerole'] = 'Users with the role "{$a->role}"';
 
-// Deprecated in 3.0.
-
-$string['tag:create'] = 'Create new tags';

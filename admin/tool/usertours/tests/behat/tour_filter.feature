@@ -16,7 +16,7 @@ Feature: Apply tour filters to a tour
     And I add steps to the "First tour" tour:
       | targettype                  | Title             | Content |
       | Display in middle of page   | Welcome           | Welcome to your personal learning space. We'd like to give you a quick tour to show you some of the areas you may find helpful |
-    When I click on "Dashboard" "link" in the "Navigation" "block"
+    When I am on homepage
     Then I should not see "Welcome to your personal learning space. We'd like to give you a quick tour to show you some of the areas you may find helpful"
 
   @javascript
@@ -46,17 +46,14 @@ Feature: Apply tour filters to a tour
       | Display in middle of page   | Welcome           | Welcome to your course tour.|
     And I log out
     And I log in as "editor1"
-    And I am on site homepage
-    When I follow "Course 1"
+    When I am on "Course 1" course homepage
     Then I should not see "Welcome to your course tour."
     And I log out
     And I log in as "student1"
-    And I am on site homepage
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I should see "Welcome to your course tour."
     And I click on "End tour" "button"
     And I log out
     And I log in as "teacher1"
-    And I am on site homepage
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I should see "Welcome to your course tour."

@@ -473,6 +473,7 @@ class core_userliblib_testcase extends advanced_testcase {
 
         $testsize = 100;
 
+        $PAGE->set_url('/');
         $user = $this->getDataGenerator()->create_user();
         $opts = user_get_user_navigation_info($user, $PAGE, array('avatarsize' => $testsize));
         $avatarhtml = $opts->metadata['useravatar'];
@@ -501,6 +502,8 @@ class core_userliblib_testcase extends advanced_testcase {
         $user5 = $this->getDataGenerator()->create_user();
         $user6 = $this->getDataGenerator()->create_user(array('deleted' => 1));
         $user7 = $this->getDataGenerator()->create_user();
+        $user8 = $this->getDataGenerator()->create_user();
+        $user8->id = 0; // Visitor.
 
         $studentrole = $DB->get_record('role', array('shortname' => 'student'));
         // Add the course creator role to the course contact and assign a user to that role.
@@ -574,6 +577,44 @@ class core_userliblib_testcase extends advanced_testcase {
         $this->assertTrue(user_can_view_profile($user4));
 
         $CFG->coursecontact = null;
+
+        // Visitor (Not a guest user, userid=0).
+        $CFG->forceloginforprofiles = 1;
+        $this->setUser($user8);
+        $this->assertFalse(user_can_view_profile($user1));
+
+        $allroles = $DB->get_records_menu('role', array(), 'id', 'archetype, id');
+        // Let us test with guest user.
+        $this->setGuestUser();
+        $CFG->forceloginforprofiles = 1;
+        foreach ($users as $user) {
+            $this->assertFalse(user_can_view_profile($user));
+        }
+
+        // Even with cap, still guests should not be allowed in.
+        $guestrole = $DB->get_records_menu('role', array('shortname' => 'guest'), 'id', 'archetype, id');
+        assign_capability('moodle/user:viewdetails', CAP_ALLOW, $guestrole['guest'], context_system::instance()->id, true);
+        reload_all_capabilities();
+        foreach ($users as $user) {
+            $this->assertFalse(user_can_view_profile($user));
+        }
+
+        $CFG->forceloginforprofiles = 0;
+        foreach ($users as $user) {
+            $this->assertTrue(user_can_view_profile($user));
+        }
+
+        // Let us test with Visitor user.
+        $this->setUser($user8);
+        $CFG->forceloginforprofiles = 1;
+        foreach ($users as $user) {
+            $this->assertFalse(user_can_view_profile($user));
+        }
+
+        $CFG->forceloginforprofiles = 0;
+        foreach ($users as $user) {
+            $this->assertTrue(user_can_view_profile($user));
+        }
     }
 
     /**
@@ -622,5 +663,214 @@ class core_userliblib_testcase extends advanced_testcase {
         // Get exception for invalid required fields.
         $this->expectException('moodle_exception');
         $result = user_get_user_details($student, $course1, array('wrongrequiredfield'));
+    }
+
+    /**
+     * Regression test for MDL-57840.
+     *
+     * Ensure the fields "auth, confirmed, idnumber, lang, theme, timezone and mailformat" are present when
+     * calling user_get_user_details() function.
+     */
+    public function test_user_get_user_details_missing_fields() {
+        $this->resetAfterTest(true);
+        $this->setAdminUser(); // We need capabilities to view the data.
+        $user = self::getDataGenerator()->create_user([
+                                                          'auth'       => 'auth_something',
+                                                          'confirmed'  => '0',
+                                                          'idnumber'   => 'someidnumber',
+                                                          'lang'       => 'en_ar',
+                                                          'theme'      => 'mytheme',
+                                                          'timezone'   => '50',
+                                                          'mailformat' => '0',
+                                                      ]);
+
+        // Fields that should get by default.
+        $got = user_get_user_details($user);
+        self::assertSame('auth_something', $got['auth']);
+        self::assertSame('0', $got['confirmed']);
+        self::assertSame('someidnumber', $got['idnumber']);
+        self::assertSame('en_ar', $got['lang']);
+        self::assertSame('mytheme', $got['theme']);
+        self::assertSame('50', $got['timezone']);
+        self::assertSame('0', $got['mailformat']);
+    }
+
+    /**
+     * Test returning the total number of participants.
+     */
+    public function test_user_get_total_participants() {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        // Create a course.
+        $course = self::getDataGenerator()->create_course();
+
+        // Create a teacher.
+        $teacher = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+
+        // Create a bunch of students.
+        $student1 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+        $student2 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+        $student3 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+
+        // Create a group.
+        $group = self::getDataGenerator()->create_group(array('courseid' => $course->id));
+
+        // Enrol the students.
+        self::getDataGenerator()->enrol_user($student1->id, $course->id);
+        self::getDataGenerator()->enrol_user($student2->id, $course->id);
+        self::getDataGenerator()->enrol_user($student3->id, $course->id);
+
+        // Enrol the teacher.
+        $roleids = $DB->get_records_menu('role', null, '', 'shortname, id');
+        self::getDataGenerator()->enrol_user($teacher->id, $course->id, $roleids['editingteacher']);
+
+        // Add the teacher and two of the students to the group.
+        groups_add_member($group->id, $teacher->id);
+        groups_add_member($group->id, $student1->id);
+        groups_add_member($group->id, $student2->id);
+
+        // Set it so the teacher and two of the students have accessed the courses within the last day,
+        // but only one of the students is in the group.
+        $accesssince = time() - DAYSECS;
+        $lastaccess = new stdClass();
+        $lastaccess->userid = $teacher->id;
+        $lastaccess->courseid = $course->id;
+        $lastaccess->timeaccess = time() - DAYSECS;
+        $DB->insert_record('user_lastaccess', $lastaccess);
+
+        $lastaccess->userid = $student1->id;
+        $DB->insert_record('user_lastaccess', $lastaccess);
+
+        $lastaccess->userid = $student3->id;
+        $DB->insert_record('user_lastaccess', $lastaccess);
+
+        // Now, when we perform the following search we should only return 1 user. A student who belongs to
+        // the group and has the name 'searchforthis' and has also accessed the course in the last day.
+        $count = user_get_total_participants($course->id, $group->id, $accesssince + 1, $roleids['student'], 'searchforthis');
+
+        $this->assertEquals(1, $count);
+    }
+
+    /**
+     * Test returning the number of participants on the front page.
+     */
+    public function test_user_get_total_participants_on_front_page() {
+        $this->resetAfterTest();
+
+        // Set it so that only 3 users have accessed the site within the last day.
+        $accesssince = time() - DAYSECS;
+
+        // Create a bunch of users.
+        $user1 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis', 'lastaccess' => $accesssince]);
+        $user2 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis', 'lastaccess' => $accesssince]);
+        $user3 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+        $user4 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis', 'lastaccess' => $accesssince]);
+
+        // Create a group.
+        $group = self::getDataGenerator()->create_group(array('courseid' => SITEID));
+
+        // Add 3 of the users to a group.
+        groups_add_member($group->id, $user1->id);
+        groups_add_member($group->id, $user2->id);
+        groups_add_member($group->id, $user3->id);
+
+        // Now, when we perform the following search we should only return 2 users. Users who belong to
+        // the group and have the name 'searchforthis' and have also accessed the site in the last day.
+        $count = user_get_total_participants(SITEID, $group->id, $accesssince + 1, 0, 'searchforthis');
+
+        $this->assertEquals(2, $count);
+    }
+
+    /**
+     * Test returning the participants.
+     */
+    public function test_user_get_participants() {
+        global $DB;
+
+        $this->resetAfterTest();
+
+        // Create a course.
+        $course = self::getDataGenerator()->create_course();
+
+        // Create a teacher.
+        $teacher = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+
+        // Create a bunch of students.
+        $student1 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+        $student2 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+        $student3 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+
+        // Create a group.
+        $group = self::getDataGenerator()->create_group(array('courseid' => $course->id));
+
+        // Enrol the students.
+        self::getDataGenerator()->enrol_user($student1->id, $course->id);
+        self::getDataGenerator()->enrol_user($student2->id, $course->id);
+        self::getDataGenerator()->enrol_user($student3->id, $course->id);
+
+        // Enrol the teacher.
+        $roleids = $DB->get_records_menu('role', null, '', 'shortname, id');
+        self::getDataGenerator()->enrol_user($teacher->id, $course->id, $roleids['editingteacher']);
+
+        // Add the teacher and two of the students to the group.
+        groups_add_member($group->id, $teacher->id);
+        groups_add_member($group->id, $student1->id);
+        groups_add_member($group->id, $student2->id);
+
+        // Set it so the teacher and two of the students have accessed the course within the last day, but only one of
+        // the students is in the group.
+        $accesssince = time() - DAYSECS;
+        $lastaccess = new stdClass();
+        $lastaccess->userid = $teacher->id;
+        $lastaccess->courseid = $course->id;
+        $lastaccess->timeaccess = time() - DAYSECS;
+        $DB->insert_record('user_lastaccess', $lastaccess);
+
+        $lastaccess->userid = $student1->id;
+        $DB->insert_record('user_lastaccess', $lastaccess);
+
+        $lastaccess->userid = $student3->id;
+        $DB->insert_record('user_lastaccess', $lastaccess);
+
+        // Now, when we perform the following search we should only return 1 user. A student who belongs to
+        // the group and has the name 'searchforthis' and has also accessed the course in the last day.
+        $userset = user_get_participants($course->id, $group->id, $accesssince + 1, $roleids['student'], 'searchforthis');
+
+        $this->assertEquals(1, sizeof($userset));
+        $this->assertEquals($student1->id, $userset->current()->id);
+    }
+
+    /**
+     * Test returning the participants on the front page.
+     */
+    public function test_user_get_participants_on_front_page() {
+        $this->resetAfterTest();
+
+        // Set it so that only 3 users have accessed the site within the last day.
+        $accesssince = time() - DAYSECS;
+
+        // Create a bunch of users.
+        $user1 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis', 'lastaccess' => $accesssince]);
+        $user2 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis', 'lastaccess' => $accesssince]);
+        $user3 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis']);
+        $user4 = self::getDataGenerator()->create_user(['firstname' => 'searchforthis', 'lastaccess' => $accesssince]);
+
+        // Create a group.
+        $group = self::getDataGenerator()->create_group(array('courseid' => SITEID));
+
+        // Add 3 of the users to a group.
+        groups_add_member($group->id, $user1->id);
+        groups_add_member($group->id, $user2->id);
+        groups_add_member($group->id, $user3->id);
+
+        // Now, when we perform the following search we should only return 2 users. Users who belong to
+        // the group and have the name 'searchforthis' and have also accessed the site in the last day.
+        $userset = user_get_participants(SITEID, $group->id, $accesssince + 1, 0, 'searchforthis', '', array(), 'ORDER BY id ASC');
+
+        $this->assertEquals($user1->id, $userset->current()->id);
+        $userset->next();
+        $this->assertEquals($user2->id, $userset->current()->id);
     }
 }

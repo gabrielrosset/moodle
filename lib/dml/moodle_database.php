@@ -124,6 +124,9 @@ abstract class moodle_database {
     /** @var cache_application for column info */
     protected $metacache;
 
+    /** @var cache_request for column info on temp tables */
+    protected $metacachetemp;
+
     /** @var bool flag marking database instance as disposed */
     protected $disposed;
 
@@ -135,6 +138,11 @@ abstract class moodle_database {
      * @var int internal temporary variable used to guarantee unique parameters in each request. Its used by {@link get_in_or_equal()}.
      */
     private $inorequaluniqueindex = 1;
+
+    /**
+     * @var boolean variable use to temporarily disable logging.
+     */
+    protected $skiplogging = false;
 
     /**
      * Constructor - Instantiates the database, specifying if it's external (connect to other systems) or not (Moodle DB).
@@ -327,13 +335,14 @@ abstract class moodle_database {
     /**
      * Handle the creation and caching of the databasemeta information for all databases.
      *
-     * TODO MDL-53267 impelement caching of cache::make() results when it's safe to do so.
-     *
      * @return cache_application The databasemeta cachestore to complete operations on.
      */
     protected function get_metacache() {
-        $properties = array('dbfamily' => $this->get_dbfamily(), 'settings' => $this->get_settings_hash());
-        return cache::make('core', 'databasemeta', $properties);
+        if (!isset($this->metacache)) {
+            $properties = array('dbfamily' => $this->get_dbfamily(), 'settings' => $this->get_settings_hash());
+            $this->metacache = cache::make('core', 'databasemeta', $properties);
+        }
+        return $this->metacache;
     }
 
     /**
@@ -342,9 +351,12 @@ abstract class moodle_database {
      * @return cache_application The temp_tables cachestore to complete operations on.
      */
     protected function get_temp_tables_cache() {
-        // Using connection data to prevent collisions when using the same temp table name with different db connections.
-        $properties = array('dbfamily' => $this->get_dbfamily(), 'settings' => $this->get_settings_hash());
-        return cache::make('core', 'temp_tables', $properties);
+        if (!isset($this->metacachetemp)) {
+            // Using connection data to prevent collisions when using the same temp table name with different db connections.
+            $properties = array('dbfamily' => $this->get_dbfamily(), 'settings' => $this->get_settings_hash());
+            $this->metacachetemp = cache::make('core', 'temp_tables', $properties);
+        }
+        return $this->metacachetemp;
     }
 
     /**
@@ -487,6 +499,11 @@ abstract class moodle_database {
      * @return void
      */
     public function query_log($error=false) {
+        // Logging disabled by the driver.
+        if ($this->skiplogging) {
+            return;
+        }
+
         $logall    = !empty($this->dboptions['logall']);
         $logslow   = !empty($this->dboptions['logslow']) ? $this->dboptions['logslow'] : false;
         $logerrors = !empty($this->dboptions['logerrors']);
@@ -523,6 +540,20 @@ abstract class moodle_database {
             }
             $this->loggingquery = false;
         }
+    }
+
+    /**
+     * Disable logging temporarily.
+     */
+    protected function query_log_prevent() {
+        $this->skiplogging = true;
+    }
+
+    /**
+     * Restore old logging behavior.
+     */
+    protected function query_log_allow() {
+        $this->skiplogging = false;
     }
 
     /**

@@ -30,9 +30,7 @@ Feature: Award badges
     And I should not see "Criteria for this badge have not been set up yet."
     And I press "Enable access"
     And I press "Continue"
-    And I click on "Admin User" "link"
-    And I choose "Profile" in the open action menu
-    And I click on "Edit profile" "link" in the "region-main" "region"
+    And I open my profile in edit mode
     And I expand all fieldsets
     And I set the field "Phone" to "123456789"
     And I press "Update profile"
@@ -88,7 +86,7 @@ Feature: Award badges
       | student1 | C1 | student |
       | student2 | C1 | student |
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Add a new badge" node in "Course administration > Badges"
     And I follow "Add a new badge"
     And I set the following fields to these values:
@@ -130,7 +128,7 @@ Feature: Award badges
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Edit settings" node in "Course administration"
     And I set the following fields to these values:
       | Enable completion tracking | Yes |
@@ -139,7 +137,8 @@ Feature: Award badges
     And I add a "Assignment" to section "1" and I fill the form with:
       | Assignment name | Test assignment name |
       | Description | Submit your online text |
-    And I follow "Course 1"
+      | id_completion | 1                     |
+    And I am on "Course 1" course homepage
     And I navigate to "Add a new badge" node in "Course administration > Badges"
     And I follow "Add a new badge"
     And I set the following fields to these values:
@@ -158,9 +157,8 @@ Feature: Award badges
     And I follow "Profile" in the user menu
     And I click on "Course 1" "link" in the "region-main" "region"
     Then I should not see "badges"
-    And I am on homepage
-    And I follow "Course 1"
-    And I press "Mark as complete: Test assignment name"
+    And I am on "Course 1" course homepage
+    And I click on "Not completed: Test assignment name" "icon"
     And I follow "Profile" in the user menu
     And I click on "Course 1" "link" in the "region-main" "region"
     Then I should see "Course Badge"
@@ -179,7 +177,7 @@ Feature: Award badges
       | teacher1 | C1 | editingteacher |
       | student1 | C1 | student |
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Edit settings" node in "Course administration"
     And I set the following fields to these values:
       | Enable completion tracking | Yes |
@@ -189,12 +187,13 @@ Feature: Award badges
       | Assignment name | Test assignment name |
       | Description | Submit your online text |
       | assignsubmission_onlinetext_enabled | 1 |
+      | id_completion | 1                     |
     And I navigate to "Course completion" node in "Course administration"
     And I set the field "id_overall_aggregation" to "2"
     And I click on "Condition: Activity completion" "link"
     And I set the field "Assignment - Test assignment name" to "1"
     And I press "Save changes"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Add a new badge" node in "Course administration > Badges"
     And I follow "Add a new badge"
     And I set the following fields to these values:
@@ -213,9 +212,8 @@ Feature: Award badges
     And I follow "Profile" in the user menu
     And I click on "Course 1" "link" in the "region-main" "region"
     Then I should not see "badges"
-    And I am on homepage
-    And I follow "Course 1"
-    And I press "Mark as complete: Test assignment name"
+    And I am on "Course 1" course homepage
+    And I click on "Not completed: Test assignment name" "icon"
     And I log out
     # Completion cron won't mark the whole course completed unless the
     # individual criteria was marked completed more than a second ago. So
@@ -244,7 +242,7 @@ Feature: Award badges
       | student1 | C1 | student |
       | student2 | C1 | student |
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     # Create course badge 1.
     And I navigate to "Add a new badge" node in "Course administration > Badges"
     And I follow "Add a new badge"
@@ -327,7 +325,7 @@ Feature: Award badges
       | student1 | C1 | student |
       | student2 | C1 | student |
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Add a new badge" node in "Course administration > Badges"
     And I follow "Add a new badge"
     And I set the following fields to these values:
@@ -357,4 +355,3 @@ Feature: Award badges
     When I press "Revoke badge"
     And I follow "Course Badge"
     Then I should see "Recipients (0)"
-

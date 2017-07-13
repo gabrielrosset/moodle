@@ -25,6 +25,7 @@
 namespace tool_lp\form;
 defined('MOODLE_INTERNAL') || die();
 
+use core\form\persistent;
 use core_competency\plan as planpersistent;
 use required_capability_exception;
 
@@ -59,7 +60,7 @@ class plan extends persistent {
         $mform->addRule('name', get_string('maximumchars', '', 100), 'maxlength', 100, 'client');
         // Description.
         $mform->addElement('editor', 'description', get_string('plandescription', 'tool_lp'), array('rows' => 4));
-        $mform->setType('description', PARAM_RAW);
+        $mform->setType('description', PARAM_CLEANHTML);
 
         $mform->addElement('date_time_selector', 'duedate', get_string('duedate', 'tool_lp'), array('optional' => true));
         $mform->addHelpButton('duedate', 'duedate', 'tool_lp');
@@ -68,7 +69,7 @@ class plan extends persistent {
         // When the plan was already saved then the status can not be changed via this form.
         $status = planpersistent::get_status_list($this->_customdata['userid']);
         $plan = $this->get_persistent();
-        if ($plan->get_id()) {
+        if ($plan->get('id')) {
             // The current status is not selectable (workflow status probably), we just display it.
             $mform->addElement('static', 'staticstatus', get_string('status', 'tool_lp'), $plan->get_statusname());
         } else if (!empty($status) && count($status) > 1) {

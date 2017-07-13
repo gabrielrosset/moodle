@@ -71,6 +71,7 @@ $string['addresource'] = 'Add a resource...';
 $string['addresourceoractivity'] = 'Add an activity or resource';
 $string['addresourcetosection'] = 'Add a resource to section \'{$a}\'';
 $string['address'] = 'Address';
+$string['addsections'] = 'Add sections';
 $string['addstudent'] = 'Add student';
 $string['addsubcategory'] = 'Add a subcategory';
 $string['addteacher'] = 'Add teacher';
@@ -133,6 +134,8 @@ $string['alllogs'] = 'All logs';
 $string['allmods'] = 'All {$a}';
 $string['allow'] = 'Allow';
 $string['allowinternal'] = 'Allow internal methods as well';
+$string['allowstealthmodules'] = 'Allow stealth activities';
+$string['allowstealthmodules_help'] = 'If enabled, activities can be made available but not shown in visible sections of the course page. If so, links to stealth activities must be provided from elsewhere, such as from a page resource. Stealth activities are still listed in the gradebook and other reports.';
 $string['allownone'] = 'Allow none';
 $string['allownot'] = 'Do not allow';
 $string['allparticipants'] = 'All participants';
@@ -329,7 +332,7 @@ $string['coursehelpforce'] = 'Force the course group mode to every activity in t
 $string['coursehelpformat'] = 'The course main page will be displayed in this format.';
 $string['coursehelphiddensections'] = 'How the hidden sections in the course are displayed to students.';
 $string['coursehelpmaximumupload'] = 'Define the largest size of file that can be uploaded in this course, limited by the site-wide setting.';
-$string['coursehelpnewsitemsnumber'] = 'Number of recent items from the news forum appearing in the latest news block on the course page. If set to zero, the latest news block will not be displayed.';
+$string['coursehelpnewsitemsnumber'] = 'Number of recent announcements appearing in the latest announcements block on the course page. If set to zero, the announcements forum will not be created.';
 $string['coursehelpnumberweeks'] = 'Number of sections in the course (applies to certain course formats only).';
 $string['coursehelpshowgrades'] = 'Enable the display of the gradebook. It does not prevent grades from being displayed within the individual activities.';
 $string['coursehidden'] = 'This course is currently unavailable to students';
@@ -379,6 +382,8 @@ $string['coursesummary'] = 'Course summary';
 $string['coursesummary_help'] = 'The course summary is displayed in the list of courses. A course search searches course summary text in addition to course names.';
 $string['coursetitle'] = 'Course: {$a->course}';
 $string['courseupdates'] = 'Course updates';
+$string['coursevisibility'] = 'Course visibility';
+$string['coursevisibility_help'] = 'This setting determines whether the course appears in the list of courses and whether students can access it. If set to Hide, then access is restricted to users with the capability to view hidden courses (such as teachers).';
 $string['create'] = 'Create';
 $string['createaccount'] = 'Create my new account';
 $string['createcategory'] = 'Create category';
@@ -463,7 +468,7 @@ $string['deletecategory'] = 'Delete category: {$a}';
 $string['deletecategoryempty'] = 'This category is empty.';
 $string['deletecategorycheck'] = 'Are you absolutely sure you want to completely delete this category <b>\'{$a}\'</b>?<br />This will move all courses into the parent category if there is one, or into Miscellaneous.';
 $string['deletecategorycheck2'] = 'If you delete this category, you need to choose what to do with the courses and subcategories it contains.';
-$string['deletecomment'] = 'Delete this comment';
+$string['deletecommentbyon'] = 'Delete comment posted by {$a->user} on {$a->time}';
 $string['deletecompletely'] = 'Delete completely';
 $string['deletecourse'] = 'Delete a course';
 $string['deletecoursecheck'] = 'Are you absolutely sure you want to completely delete this course and all the data it contains?';
@@ -666,20 +671,14 @@ If you need help, please contact the site administrator,
 {$a->admin}';
 $string['emailpasswordchangeinfodisabled'] = 'Hi {$a->firstname},
 
-Someone (probably you) has requested a new password for your
-account on \'{$a->sitename}\'.
+Someone (probably you) has requested a new password for your account on \'{$a->sitename}\'.
 
-Unfortunately your account on this site is disabled and can not be reset,
-please contact the site administrator,
-{$a->admin}';
+Unfortunately your account on this site is disabled, so the password cannot be reset. Please contact the site administrator {$a->admin}.';
 $string['emailpasswordchangeinfofail'] = 'Hi {$a->firstname},
 
-Someone (probably you) has requested a new password for your
-account on \'{$a->sitename}\'.
+Someone (probably you) has requested a new password for your account on \'{$a->sitename}\'.
 
-Unfortunately passwords can not be reset on this site,
-please contact the site administrator,
-{$a->admin}';
+Unfortunately passwords cannot be reset on this site. Please contact the site administrator {$a->admin}.';
 $string['emailpasswordchangeinfosubject'] = '{$a}: Change password information';
 $string['emailpasswordsent'] = 'Thank you for confirming the change of password.
 An email containing your new password has been sent to your address at<br /><b>{$a->email}</b>.<br />
@@ -705,7 +704,7 @@ $string['emailresetconfirmsent'] = 'An email has been sent to your address at <b
 If you continue to have difficulty, contact the site administrator.';
 $string['emailtoprivatefiles'] = 'You can also e-mail files as attachments straight to your private files space. Simply attach your files to an e-mail and send it to {$a}';
 $string['emailtoprivatefilesdenied'] = 'Your administrator has disabled the option to upload your own private files.';
-$string['emailvia'] = '{$a->name} via {$a->url}';
+$string['emailvia'] = '{$a->name} (via {$a->siteshortname})';
 $string['emptydragdropregion'] = 'empty region';
 $string['enable'] = 'Enable';
 $string['encryptedcode'] = 'Encrypted code';
@@ -744,6 +743,7 @@ $string['eventcourseresetended'] = 'Course reset ended';
 $string['eventcourseresetstarted'] = 'Course reset started';
 $string['eventcourserestored'] = 'Course restored';
 $string['eventcourseupdated'] = 'Course updated';
+$string['eventcoursesectioncreated'] = 'Course section created';
 $string['eventcoursesectiondeleted'] = 'Course section deleted';
 $string['eventcoursesectionupdated'] = 'Course section updated';
 $string['eventcoursemoduleinstancelistviewed'] = 'Course module instance list viewed';
@@ -842,7 +842,7 @@ $string['frontpagedescription'] = 'Front page summary';
 $string['frontpagedescriptionhelp'] = 'This summary can be displayed on the front page using the course/site summary block.';
 $string['frontpageformat'] = 'Front page format';
 $string['frontpageformatloggedin'] = 'Front page format when logged in';
-$string['frontpagenews'] = 'News items';
+$string['frontpagenews'] = 'Announcements';
 $string['frontpagesettings'] = 'Front page settings';
 $string['fulllistofcourses'] = 'All courses';
 $string['fullname'] = 'Full name'; /* @deprecated - Use fullnamecourse or fullnameuser or some own context specific string. */
@@ -924,6 +924,7 @@ $string['helpprefix2'] = 'Help with {$a}';
 $string['helpwiththis'] = 'Help with this';
 $string['hiddenassign'] = 'Hidden assignment';
 $string['hiddenfromstudents'] = 'Hidden from students';
+$string['hiddenoncoursepage'] = 'Available but not shown on course page';
 $string['hiddensections'] = 'Hidden sections';
 $string['hiddensections_help'] = 'This setting determines whether hidden sections are displayed to students in collapsed form (perhaps for a course in weekly format to indicate holidays) or are completely hidden.';
 $string['hiddensectionscollapsed'] = 'Hidden sections are shown in collapsed form';
@@ -931,6 +932,8 @@ $string['hiddensectionsinvisible'] = 'Hidden sections are completely invisible';
 $string['hide'] = 'Hide';
 $string['hideadvancedsettings'] = 'Hide advanced settings';
 $string['hidechartdata'] = 'Hide chart data';
+$string['hidefromstudents'] = 'Hide from students';
+$string['hideoncoursepage'] = 'Make available but not shown on course page';
 $string['hidepicture'] = 'Hide picture';
 $string['hidesection'] = 'Hide section {$a}';
 $string['hidesettings'] = 'Hide settings';
@@ -1090,8 +1093,10 @@ $string['mailstudents'] = 'Inform students';
 $string['mailteachers'] = 'Inform teachers';
 $string['maincoursepage'] = 'Main course page';
 $string['makeafolder'] = 'Create folder';
+$string['makeavailable'] = 'Make available';
 $string['makeeditable'] = 'If you make \'{$a}\' editable by the web server process (eg apache) then you could edit this file directly from this page';
 $string['makethismyhome'] = 'Make this my default home page';
+$string['makeunavailable'] = 'Make unavailable';
 $string['manageblocks'] = 'Blocks';
 $string['managecategorythis'] = 'Manage this category';
 $string['managecourses'] = 'Manage courses';
@@ -1174,6 +1179,18 @@ $string['missingteacher'] = 'Must choose something';
 $string['missingurl'] = 'Missing URL';
 $string['missingusername'] = 'Missing username';
 $string['moddoesnotsupporttype'] = 'Module {$a->modname} does not support uploads of type {$a->type}';
+$string['modhide'] = 'Hide';
+$string['modshow'] = 'Show';
+$string['modvisible'] = 'Availability';
+$string['modvisible_help'] = 'If the availability is set to \'Show on course page\', the activity or resource is available to students (subject to any access restrictions which may be set).<br><br>
+If the availability is set to \'Hide from students\', the activity or resource is only available to users with permission to view hidden activities (by default, users with the role of teacher or non-editing teacher).';
+$string['modvisiblewithstealth'] = 'Availability';
+$string['modvisiblewithstealth_help'] = 'If the availability is set to \'Show on course page\', the activity or resource is available to students (subject to any access restrictions which may be set).<br><br>
+If the availability is set to \'Hide from students\', the activity or resource is only available to users with permission to view hidden activities (by default, users with the role of teacher or non-editing teacher).<br><br>
+If the course contains many activities or resources, the course page may be simplified by setting the availability to \'Make available but not shown on course page\'. In this case, a link to the activity or resource must be provided from elsewhere, such as from a page resource. The activity would still be listed in the gradebook and other reports.';
+$string['modvisiblehiddensection'] = 'Availability';
+$string['modvisiblehiddensection_help'] = 'If the availability is set to \'Hide from students\', the activity or resource is only available to users with permission to view hidden activities (by default, users with the role of teacher or non-editing teacher).<br><br>
+If the course contains many activities or resources, the course page may be simplified by setting the availability to \'Make available but not shown on course page\'. In this case, a link to the activity or resource must be provided from elsewhere, such as from a page resource. The activity would still be listed in the gradebook and other reports.';
 $string['moodlelogo'] = 'Moodle logo';
 $string['month'] = 'Month';
 $string['months'] = 'Months';
@@ -1191,6 +1208,7 @@ $string['morehelp'] = 'More help';
 $string['moreinfo'] = 'More info';
 $string['moreinformation'] = 'More information about this error';
 $string['moreprofileinfoneeded'] = 'Please tell us more about yourself';
+$string['morenavigationlinks'] = 'More...';
 $string['mostrecently'] = 'most recently';
 $string['move'] = 'Move';
 $string['movecoursemodule'] = 'Move resource';
@@ -1266,9 +1284,13 @@ $string['newpicture_help'] = 'To add a new picture, browse and select an image (
 $string['newpictureusernotsetup'] = 'A profile picture can only be added once all required profile information has been saved.';
 $string['newsectionname'] = 'New name for section {$a}';
 $string['newsitem'] = 'news item';
-$string['newsitems'] = 'news items';
-$string['newsitemsnumber'] = 'News items to show';
-$string['newsitemsnumber_help'] = 'This setting determines how many recent items appear in the latest news block on the course page. If set to "0 news items" then the latest news block will not be displayed.';
+$string['newsitems'] = 'announcements';
+$string['newsitemsnumber'] = 'Number of announcements';
+$string['newsitemsnumber_help'] = 'The announcements forum is a special forum which is created automatically in the course, has forced subscription set by default, and only users with appropriate permissions (by default teachers) can post in it.
+
+This setting determines how many recent announcements appear in the latest announcements block.
+
+If an announcements forum is not required in the course, this setting should be set to zero.';
 $string['newuser'] = 'New user';
 $string['newusernewpasswordsubj'] = 'New user account';
 $string['newusernewpasswordtext'] = 'Hi {$a->firstname},
@@ -1483,6 +1505,7 @@ $string['publicsitefileswarning3'] = 'Note: Files placed here can be accessed by
 $string['publish'] = 'Publish';
 $string['question'] = 'Question';
 $string['questionsinthequestionbank'] = 'Questions in the question bank';
+$string['quotausage'] = 'You have currently used {$a->used} of your {$a->total} limit.';
 $string['readinginfofrombackup'] = 'Reading info from backup';
 $string['readme'] = 'README';
 $string['recentactivity'] = 'Recent activity';
@@ -1641,9 +1664,9 @@ $string['secondstotime86400'] = '1 day';
 $string['secretalreadyused'] = 'Change password confirmation link was already used, password was not changed.';
 $string['secs'] = 'secs';
 $string['section'] = 'Section';
+$string['sectionactionnotsupported'] = 'Section action "{$a}" is not supported here';
 $string['sectionname'] = 'Section name';
 $string['sections'] = 'Sections';
-$string['sectionusedefaultname'] = 'Use default section name';
 $string['seealsostats'] = 'See also: stats';
 $string['select'] = 'Select';
 $string['selectacategory'] = 'Please select a category';
@@ -1708,6 +1731,7 @@ $string['showingacourses'] = 'Showing all {$a} courses';
 $string['showingxofycourses'] = 'Showing courses {$a->start} to {$a->end} of {$a->total} courses';
 $string['showlistofcourses'] = 'Show list of courses';
 $string['showmodulecourse'] = 'Show list of courses containing activity';
+$string['showoncoursepage'] = 'Show on course page';
 $string['showonly'] = 'Show only';
 $string['showperpage'] = 'Show {$a} per page';
 $string['showpopoverwindow'] = 'Show popover window';
@@ -1718,6 +1742,7 @@ $string['showsettings'] = 'Show settings';
 $string['showtheselogs'] = 'Show these logs';
 $string['showthishelpinlanguage'] = 'Show this help in language: {$a}';
 $string['schedule'] = 'Schedule';
+$string['sidepanel'] = 'Side panel';
 $string['signoutofotherservices'] = 'Sign out everywhere';
 $string['signoutofotherservices_help'] = 'If ticked, the account will be signed out of all devices and systems which use web services, such as the mobile app.';
 $string['since'] = 'Since';
@@ -1731,7 +1756,7 @@ $string['sitehome'] = 'Site home';
 $string['sitelegacyfiles'] = 'Legacy site files';
 $string['sitelogs'] = 'Site logs';
 $string['sitemessage'] = 'Message users';
-$string['sitenews'] = 'Site news';
+$string['sitenews'] = 'Site announcements';
 $string['sitepages'] = 'Site pages';
 $string['sitepartlist'] = 'You do not have the required permissions to view the participants list';
 $string['sitepartlist0'] = 'You must be a site teacher to be allowed to see the site participants list';
@@ -1820,6 +1845,7 @@ $string['subcategory'] = 'Subcategory';
 $string['subcategoryof'] = 'Subcategory of {$a}';
 $string['submit'] = 'Submit';
 $string['success'] = 'Success';
+$string['successduration'] = 'Success ({$a} seconds)';
 $string['summary'] = 'Summary';
 $string['summary_help'] = 'The idea of a summary is a short text to prepare students for the activities within the topic or week. The text is shown on the course page under the section name.';
 $string['summaryof'] = 'Summary of {$a}';
@@ -1830,6 +1856,9 @@ $string['switchdevicedefault'] = 'Switch to the standard theme';
 $string['switchdevicerecommended'] = 'Switch to the recommended theme for your device';
 $string['switchrolereturn'] = 'Return to my normal role';
 $string['switchroleto'] = 'Switch role to...';
+$string['switchroleto_help'] = 'Choose a role to get an idea of how someone with that role will see this course.
+
+Please note that this view may not be perfect (<a href="https://docs.moodle.org/en/Switch_roles">See details and alternatives</a>).';
 $string['tag'] = 'Tag';
 $string['tagalready'] = 'This tag already exists';
 $string['tagmanagement'] = 'Add/delete tags ...';
@@ -1864,6 +1893,7 @@ $string['today'] = 'Today';
 $string['todaylogs'] = 'Today\'s logs';
 $string['toeveryone'] = 'to everyone';
 $string['toomanybounces'] = 'That email address has had too many bounces. You <b>must</b> change it to continue.';
+$string['toomanytags'] = 'This search included too many tags; some will have been ignored.';
 $string['toomanytoshow'] = 'There are too many users to show.';
 $string['toomanyusersmatchsearch'] = 'Too many users ({$a->count}) match \'{$a->search}\'';
 $string['toomanyuserstoshow'] = 'Too many users ({$a}) to show';
@@ -2052,3 +2082,7 @@ $string['maxbytesforfile'] = 'The file {$a} is larger than the maximum size allo
 // Deprecated since Moodle 3.2.
 $string['modchooserenable'] = 'Activity chooser on';
 $string['modchooserdisable'] = 'Activity chooser off';
+
+// Deprecated since Moodle 3.3.
+$string['deletecomment'] = 'Delete this comment';
+$string['sectionusedefaultname'] = 'Use default section name';

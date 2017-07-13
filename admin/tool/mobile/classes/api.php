@@ -29,9 +29,10 @@ use core_plugin_manager;
 use context_system;
 use moodle_url;
 use moodle_exception;
+use lang_string;
 
 /**
- * API exposed by tool_mobile
+ * API exposed by tool_mobile, to be used mostly by external functions and the plugin settings.
  *
  * @copyright  2016 Juan Leyva
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -57,6 +58,13 @@ class api {
         global $CFG;
         require_once($CFG->libdir . '/adminlib.php');
 
+        // Check if we can return this from cache.
+        $cache = \cache::make('tool_mobile', 'plugininfo');
+        $pluginsinfo = $cache->get('mobileplugins');
+        if ($pluginsinfo !== false) {
+            return (array)$pluginsinfo;
+        }
+
         $pluginsinfo = [];
         $plugintypes = core_component::get_plugin_types();
 
@@ -68,7 +76,7 @@ class api {
                 $component = $plugintype . '_' . $plugin;
                 $version = get_component_version($component);
 
-                require_once("$path/db/mobile.php");
+                require("$path/db/mobile.php");
                 foreach ($addons as $addonname => $addoninfo) {
                     $plugininfo = array(
                         'component' => $component,
@@ -81,7 +89,7 @@ class api {
                     );
 
                     // All the mobile packages must be under the plugin mobile directory.
-                    $package = $path . DIRECTORY_SEPARATOR . 'mobile' . DIRECTORY_SEPARATOR . $addonname . '.zip';
+                    $package = $path . '/mobile/' . $addonname . '.zip';
                     if (file_exists($package)) {
                         $plugininfo['fileurl'] = $CFG->wwwroot . '' . str_replace($CFG->dirroot, '', $package);
                         $plugininfo['filehash'] = sha1_file($package);
@@ -91,6 +99,9 @@ class api {
                 }
             }
         }
+
+        $cache->set('mobileplugins', $pluginsinfo);
+
         return $pluginsinfo;
     }
 
@@ -101,11 +112,14 @@ class api {
      */
     public static function get_public_config() {
         global $CFG, $SITE, $PAGE, $OUTPUT;
+        require_once($CFG->libdir . '/authlib.php');
 
         $context = context_system::instance();
         // We need this to make work the format text functions.
         $PAGE->set_context($context);
 
+        list($authinstructions, $notusedformat) = external_format_text($CFG->auth_instructions, FORMAT_MOODLE, $context->id);
+        list($maintenancemessage, $notusedformat) = external_format_text($CFG->maintenance_message, FORMAT_MOODLE, $context->id);
         $settings = array(
             'wwwroot' => $CFG->wwwroot,
             'httpswwwroot' => $CFG->httpswwwroot,
@@ -115,12 +129,14 @@ class api {
             'authloginviaemail' => $CFG->authloginviaemail,
             'registerauth' => $CFG->registerauth,
             'forgottenpasswordurl' => $CFG->forgottenpasswordurl,
-            'authinstructions' => format_text($CFG->auth_instructions),
+            'authinstructions' => $authinstructions,
             'authnoneenabled' => (int) is_enabled_auth('none'),
             'enablewebservices' => $CFG->enablewebservices,
             'enablemobilewebservice' => $CFG->enablemobilewebservice,
             'maintenanceenabled' => $CFG->maintenance_enabled,
-            'maintenancemessage' => format_text($CFG->maintenance_message),
+            'maintenancemessage' => $maintenancemessage,
+            'mobilecssurl' => !empty($CFG->mobilecssurl) ? $CFG->mobilecssurl : '',
+            'tool_mobile_disabledfeatures' => get_config('tool_mobile', 'disabledfeatures'),
         );
 
         $typeoflogin = get_config('tool_mobile', 'typeoflogin');
@@ -130,17 +146,25 @@ class api {
         }
         $settings['typeoflogin'] = $typeoflogin;
 
-        if ($typeoflogin == self::LOGIN_VIA_BROWSER or
-                $typeoflogin == self::LOGIN_VIA_EMBEDDED_BROWSER) {
-            $url = new moodle_url("/$CFG->admin/tool/mobile/launch.php");
-            $settings['launchurl'] = $url->out(false);
-        }
+        // Check if the user can sign-up to return the launch URL in that case.
+        $cansignup = signup_is_enabled();
+
+        $url = new moodle_url("/$CFG->admin/tool/mobile/launch.php");
+        $settings['launchurl'] = $url->out(false);
 
         if ($logourl = $OUTPUT->get_logo_url()) {
             $settings['logourl'] = $logourl->out(false);
         }
         if ($compactlogourl = $OUTPUT->get_compact_logo_url()) {
             $settings['compactlogourl'] = $compactlogourl->out(false);
+        }
+
+        // Identity providers.
+        $authsequence = get_enabled_auth_plugins(true);
+        $identityproviders = \auth_plugin_base::get_identity_providers($authsequence);
+        $identityprovidersdata = \auth_plugin_base::prepare_identity_providers_for_output($identityproviders, $OUTPUT);
+        if (!empty($identityprovidersdata)) {
+            $settings['identityproviders'] = $identityprovidersdata;
         }
 
         return $settings;
@@ -162,14 +186,20 @@ class api {
         if (empty($section) or $section == 'frontpagesettings') {
             require_once($CFG->dirroot . '/course/format/lib.php');
             // First settings that anyone can deduce.
-            $settings->fullname = $SITE->fullname;
-            $settings->shortname = $SITE->shortname;
-            $settings->summary = $SITE->summary;
+            $settings->fullname = external_format_string($SITE->fullname, $context->id);
+            $settings->shortname = external_format_string($SITE->shortname, $context->id);
+
+            // Return to a var instead of directly to $settings object because of differences between
+            // list() in php5 and php7. {@link http://php.net/manual/en/function.list.php}
+            $formattedsummary = external_format_text($SITE->summary, $SITE->summaryformat,
+                                                                                        $context->id);
+            $settings->summary = $formattedsummary[0];
+            $settings->summaryformat = $formattedsummary[1];
             $settings->frontpage = $CFG->frontpage;
             $settings->frontpageloggedin = $CFG->frontpageloggedin;
             $settings->maxcategorydepth = $CFG->maxcategorydepth;
             $settings->frontpagecourselimit = $CFG->frontpagecourselimit;
-            $settings->numsections = course_get_format($SITE)->get_course()->numsections;
+            $settings->numsections = course_get_format($SITE)->get_last_section_number();
             $settings->newsitems = $SITE->newsitems;
             $settings->commentsperpage = $CFG->commentsperpage;
 
@@ -186,6 +216,13 @@ class api {
         if (empty($section) or $section == 'gradessettings') {
             require_once($CFG->dirroot . '/user/lib.php');
             $settings->mygradesurl = user_mygrades_url()->out(false);
+        }
+
+        if (empty($section) or $section == 'mobileapp') {
+            $settings->tool_mobile_forcelogout = get_config('tool_mobile', 'forcelogout');
+            $settings->tool_mobile_customlangstrings = get_config('tool_mobile', 'customlangstrings');
+            $settings->tool_mobile_disabledfeatures = get_config('tool_mobile', 'disabledfeatures');
+            $settings->tool_mobile_custommenuitems = get_config('tool_mobile', 'custommenuitems');
         }
 
         return $settings;
@@ -229,5 +266,88 @@ class api {
         $iprestriction = getremoteaddr();
         $validuntil = time() + self::LOGIN_KEY_TTL;
         return create_user_key('tool_mobile', $USER->id, null, $iprestriction, $validuntil);
+    }
+
+    /**
+     * Get a list of the Mobile app features.
+     *
+     * @return array array with the features grouped by theirs ubication in the app.
+     * @since Moodle 3.3
+     */
+    public static function get_features_list() {
+        global $CFG;
+
+        $general = new lang_string('general');
+        $mainmenu = new lang_string('mainmenu', 'tool_mobile');
+        $course = new lang_string('course');
+        $modules = new lang_string('managemodules');
+        $user = new lang_string('user');
+        $files = new lang_string('files');
+        $remoteaddons = new lang_string('remoteaddons', 'tool_mobile');
+
+        $availablemods = core_plugin_manager::instance()->get_plugins_of_type('mod');
+        $coursemodules = array();
+        $appsupportedmodules = array('assign', 'book', 'chat', 'choice', 'data', 'feedback', 'folder', 'forum', 'glossary', 'imscp',
+                                        'label', 'lesson', 'lti', 'page', 'quiz', 'resource', 'scorm', 'survey', 'url', 'wiki');
+        foreach ($availablemods as $mod) {
+            if (in_array($mod->name, $appsupportedmodules)) {
+                $coursemodules['$mmCourseDelegate_mmaMod' . ucfirst($mod->name)] = $mod->displayname;
+            }
+        }
+
+        $remoteaddonslist = array();
+        $mobileplugins = self::get_plugins_supporting_mobile();
+        foreach ($mobileplugins as $plugin) {
+            $displayname = core_plugin_manager::instance()->plugin_name($plugin['component']) . " - " . $plugin['addon'];
+            $remoteaddonslist['remoteAddOn_' . $plugin['component'] . '_' . $plugin['addon']] = $displayname;
+
+        }
+
+        $features = array(
+            '$mmLoginEmailSignup' => new lang_string('startsignup'),
+            "$mainmenu" => array(
+                '$mmSideMenuDelegate_mmCourses' => new lang_string('mycourses'),
+                '$mmSideMenuDelegate_mmaFrontpage' => new lang_string('sitehome'),
+                '$mmSideMenuDelegate_mmaGrades' => new lang_string('grades', 'grades'),
+                '$mmSideMenuDelegate_mmaCompetency' => new lang_string('myplans', 'tool_lp'),
+                '$mmSideMenuDelegate_mmaNotifications' => new lang_string('notifications', 'message'),
+                '$mmSideMenuDelegate_mmaMessages' => new lang_string('messages', 'message'),
+                '$mmSideMenuDelegate_mmaCalendar' => new lang_string('calendar', 'calendar'),
+                '$mmSideMenuDelegate_mmaFiles' => new lang_string('files'),
+                '$mmSideMenuDelegate_website' => new lang_string('webpage'),
+                '$mmSideMenuDelegate_help' => new lang_string('help'),
+            ),
+            "$course" => array(
+                '$mmCoursesDelegate_search' => new lang_string('search'),
+                '$mmCoursesDelegate_mmaCompetency' => new lang_string('competencies', 'competency'),
+                '$mmCoursesDelegate_mmaParticipants' => new lang_string('participants'),
+                '$mmCoursesDelegate_mmaGrades' => new lang_string('grades', 'grades'),
+                '$mmCoursesDelegate_mmaCourseCompletion' => new lang_string('coursecompletion', 'completion'),
+                '$mmCoursesDelegate_mmaNotes' => new lang_string('notes', 'notes'),
+            ),
+            "$user" => array(
+                '$mmUserDelegate_mmaBadges' => new lang_string('badges', 'badges'),
+                '$mmUserDelegate_mmaCompetency:learningPlan' => new lang_string('competencies', 'competency'),
+                '$mmUserDelegate_mmaCourseCompletion:viewCompletion' => new lang_string('coursecompletion', 'completion'),
+                '$mmUserDelegate_mmaGrades:viewGrades' => new lang_string('grades', 'grades'),
+                '$mmUserDelegate_mmaMessages:sendMessage' => new lang_string('sendmessage', 'message'),
+                '$mmUserDelegate_mmaMessages:addContact' => new lang_string('addcontact', 'message'),
+                '$mmUserDelegate_mmaMessages:blockContact' => new lang_string('blockcontact', 'message'),
+                '$mmUserDelegate_mmaNotes:addNote' => new lang_string('addnewnote', 'notes'),
+                '$mmUserDelegate_picture' => new lang_string('userpic'),
+            ),
+            "$files" => array(
+                'files_privatefiles' => new lang_string('privatefiles'),
+                'files_sitefiles' => new lang_string('sitefiles'),
+                'files_upload' => new lang_string('upload'),
+            ),
+            "$modules" => $coursemodules,
+        );
+
+        if (!empty($remoteaddonslist)) {
+            $features["$remoteaddons"] = $remoteaddonslist;
+        }
+
+        return $features;
     }
 }

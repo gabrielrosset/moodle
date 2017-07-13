@@ -5,13 +5,13 @@
     define(["jquery","./popper"], function (a0,b1) {
       return (root['Tour'] = factory(a0,b1));
     });
-  } else if (typeof exports === 'object') {
+  } else if (typeof module === 'object' && module.exports) {
     // Node. Does not work with strict CommonJS, but
     // only CommonJS-like environments that support module.exports,
     // like Node.
     module.exports = factory(require("jquery"),require("popper.js"));
   } else {
-    root['Tour'] = factory($,Popper);
+    root['Tour'] = factory(root["$"],root["Popper"]);
   }
 }(this, function ($, Popper) {
 
@@ -24,7 +24,7 @@
  * @param   {object}    config  The configuration object.
  */
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function Tour(config) {
     this.init(config);
@@ -36,6 +36,20 @@ function Tour(config) {
  * @property    {String}    tourName
  */
 Tour.prototype.tourName;
+
+/**
+ * The name of the tour storage key.
+ *
+ * @property    {String}    storageKey
+ */
+Tour.prototype.storageKey;
+
+/**
+ * The session storage object
+ *
+ * @property    {Storage}   storage
+ */
+Tour.prototype.storage;
 
 /**
  * The original configuration as passed into the constructor.
@@ -119,6 +133,14 @@ Tour.prototype.init = function (config) {
 
     // Apply configuration.
     this.configure.apply(this, arguments);
+
+    try {
+        this.storage = window.sessionStorage;
+        this.storageKey = 'tourstate_' + this.tourName;
+    } catch (e) {
+        this.storage = false;
+        this.storageKey = '';
+    }
 
     return this;
 };
@@ -280,6 +302,15 @@ Tour.prototype.getCurrentStepNumber = function () {
  */
 Tour.prototype.setCurrentStepNumber = function (stepNumber) {
     this.currentStepNumber = stepNumber;
+    if (this.storage) {
+        try {
+            this.storage.setItem(this.storageKey, stepNumber);
+        } catch (e) {
+            if (e.code === DOMException.QUOTA_EXCEEDED_ERR) {
+                this.storage.removeItem(this.storageKey);
+            }
+        }
+    }
 };
 
 /**
@@ -742,12 +773,8 @@ Tour.prototype.addStepToPage = function (stepConfig) {
         // Add the backdrop.
         this.positionBackdrop(stepConfig);
 
-        if (stepConfig.attachPoint === 'append') {
-            stepConfig.attachTo.append(currentStepNode);
-            this.currentStepNode = currentStepNode;
-        } else {
-            this.currentStepNode = currentStepNode.insertAfter(stepConfig.attachTo);
-        }
+        $(document.body).append(currentStepNode);
+        this.currentStepNode = currentStepNode;
 
         // Ensure that the step node is positioned.
         // Some situations mean that the value is not properly calculated without this step.
@@ -776,7 +803,7 @@ Tour.prototype.addStepToPage = function (stepConfig) {
         currentStepNode.addClass('orphan');
 
         // It lives in the body.
-        stepConfig.attachTo.append(currentStepNode);
+        $(document.body).append(currentStepNode);
         this.currentStepNode = currentStepNode;
 
         this.currentStepNode.offset(this.calculateStepPositionInPage());
@@ -957,6 +984,16 @@ Tour.prototype.handleKeyDown = function (e) {
  * @chainable
  */
 Tour.prototype.startTour = function (startAt) {
+    if (this.storage && typeof startAt === 'undefined') {
+        var storageStartValue = this.storage.getItem(this.storageKey);
+        if (storageStartValue) {
+            var storageStartAt = parseInt(storageStartValue, 10);
+            if (storageStartAt <= this.steps.length) {
+                startAt = storageStartAt;
+            }
+        }
+    }
+
     if (typeof startAt === 'undefined') {
         startAt = this.getCurrentStepNumber();
     }
@@ -1190,11 +1227,6 @@ Tour.prototype.positionStep = function (stepConfig) {
         }
     };
 
-    var boundaryElement = target.closest('section');
-    if (boundaryElement.length) {
-        config.boundariesElement = boundaryElement[0];
-    }
-
     var background = $('[data-flexitour="step-background"]');
     if (background.length) {
         target = background;
@@ -1270,6 +1302,8 @@ Tour.prototype.positionBackdrop = function (stepConfig) {
             var targetPosition = this.calculatePosition(targetNode);
             if (targetPosition === 'fixed') {
                 background.css('top', 0);
+            } else if (targetPosition === 'absolute') {
+                background.css('position', 'fixed');
             }
 
             var fader = background.clone();

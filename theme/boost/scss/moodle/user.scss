@@ -240,10 +240,6 @@
     font-size: 0.8em;
 }
 
-#userselector_options {
-    padding: 0.3em 0;
-}
-
 #userselector_options .collapsibleregioncaption {
     font-weight: bold;
 }
@@ -281,16 +277,15 @@
     }
 }
 
-#groupeditform {
-    .groups,
-    .members {
-        min-width: 175px;
-        width: 49%;
-        float: left;
-        text-align: left;
+// Remove the little cog from participants page because we are putting a cog menu there.
+.userlist h3 .action-icon {
+    display: none;
+}
 
-        select {
-            min-width: 175px;
-        }
-    }
+#page-enrol-users .popover {
+    max-width: none;
+}
+
+.user-enroller-panel {
+    width: 600px;
 }

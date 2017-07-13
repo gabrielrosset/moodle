@@ -24,30 +24,30 @@ Feature: Access to full profiles of users
 
   Scenario: Viewing full profiles with default settings
     When I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     # Another student's full profile is not visible
-    And I navigate to "Participants" node in "My courses > C1"
+    And I navigate to course participants
     And I follow "Student 2"
     Then I should not see "Full profile"
     # Teacher's full profile is visible
-    And I navigate to "Participants" node in "My courses > C1"
+    And I am on "Course 1" course homepage
+    And I navigate to course participants
     And I follow "Teacher 1"
     And I follow "Full profile"
     And I should see "First access to site"
     # Own full profile is visible
-    And I follow "Course 1"
-    And I navigate to "Participants" node in "My courses > C1"
+    And I am on "Course 1" course homepage
+    And I navigate to course participants
     And I click on "Student 1" "link" in the "#participants" "css_element"
     And I follow "Full profile"
     And I should see "First access to site"
 
-  @javascript
   Scenario: Viewing full profiles with forceloginforprofiles off
     Given the following config values are set as admin:
       |  forceloginforprofiles | 0 |
     When I log in as "student1"
-    And I follow "Course 1"
-    And I navigate to "Participants" node in "My courses > C1"
+    And I am on "Course 1" course homepage
+    And I navigate to course participants
     And I follow "Student 2"
     And I follow "Full profile"
     Then I should see "First access to site"
@@ -58,13 +58,12 @@ Feature: Access to full profiles of users
       | moodle/user:viewdetails | Allow |
     And I log out
     When I log in as "student1"
-    And I follow "Course 1"
-    And I navigate to "Participants" node in "My courses > C1"
+    And I am on "Course 1" course homepage
+    And I navigate to course participants
     And I follow "Student 2"
     And I follow "Full profile"
     Then I should see "First access to site"
 
-  @javascript
   Scenario: Viewing own full profile
     Given I log in as "student1"
     When I follow "Profile" in the user menu
@@ -84,14 +83,13 @@ Feature: Access to full profiles of users
     And I log out
     When I log in as "student1"
     And I view the "Student 3" contact in the message area
-    And I follow "View profile"
+    And I click on ".profile-picture" "css_element"
     Then I should see "First access to site"
 
   @javascript
   Scenario: View full profiles of someone in the same group in a course with separate groups.
     Given I log in as "admin"
-    And I am on site homepage
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I navigate to "Edit settings" node in "Course administration"
     And I set the following fields to these values:
       | Group mode | Separate groups |
@@ -100,15 +98,13 @@ Feature: Access to full profiles of users
     And I log out
     When I log in as "student1"
     And I view the "Student 2" contact in the message area
-    And I follow "View profile"
+    And I click on ".profile-picture" "css_element"
     And I should not see "First access to site"
     And I should see "The details of this user are not available to you"
     And I log out
     And I log in as "admin"
-    And I am on site homepage
-    And I follow "Course 1"
-    And I expand "Users" node
-    And I follow "Groups"
+    And I am on "Course 1" course homepage
+    And I navigate to "Users > Groups" in current page administration
     And I press "Create group"
     And I set the following fields to these values:
       | Group name | Group 1 |
@@ -118,5 +114,5 @@ Feature: Access to full profiles of users
     And I log out
     And I log in as "student1"
     And I view the "Student 2" contact in the message area
-    And I follow "View profile"
+    And I click on ".profile-picture" "css_element"
     Then I should see "First access to site"

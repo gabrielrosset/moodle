@@ -27,12 +27,6 @@
 require('../config.php');
 require_once('lib.php');
 
-// Try to prevent searching for sites that allow sign-up.
-if (!isset($CFG->additionalhtmlhead)) {
-    $CFG->additionalhtmlhead = '';
-}
-$CFG->additionalhtmlhead .= '<meta name="robots" content="noindex" />';
-
 redirect_if_major_upgrade_required();
 
 $testsession = optional_param('testsession', 0, PARAM_INT); // test session works properly
@@ -216,10 +210,13 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
     /// Currently supported only for ldap-authentication module
         $userauth = get_auth_plugin($USER->auth);
         if (!isguestuser() and !empty($userauth->config->expiration) and $userauth->config->expiration == 1) {
+            $externalchangepassword = false;
             if ($userauth->can_change_password()) {
                 $passwordchangeurl = $userauth->change_password_url();
                 if (!$passwordchangeurl) {
                     $passwordchangeurl = $CFG->httpswwwroot.'/login/change_password.php';
+                } else {
+                    $externalchangepassword = true;
                 }
             } else {
                 $passwordchangeurl = $CFG->httpswwwroot.'/login/change_password.php';
@@ -233,6 +230,15 @@ if ($frm and isset($frm->username)) {                             // Login WITH 
                 echo $OUTPUT->footer();
                 exit;
             } elseif (intval($days2expire) < 0 ) {
+                if ($externalchangepassword) {
+                    // We end the session if the change password form is external. This prevents access to the site
+                    // until the password is correctly changed.
+                    require_logout();
+                } else {
+                    // If we use the standard change password form, this user preference will be reset when the password
+                    // is changed. Until then it will prevent access to the site.
+                    set_user_preference('auth_forcepasswordchange', 1, $USER);
+                }
                 echo $OUTPUT->header();
                 echo $OUTPUT->confirm(get_string('auth_passwordisexpired', 'auth'), $passwordchangeurl, $urltogo);
                 echo $OUTPUT->footer();

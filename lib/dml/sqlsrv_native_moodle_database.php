@@ -69,11 +69,7 @@ class sqlsrv_native_moodle_database extends moodle_database {
         // the name used by 'extension_loaded()' is case specific! The extension
         // therefore *could be* mixed case and hence not found.
         if (!function_exists('sqlsrv_num_rows')) {
-            if (stripos(PHP_OS, 'win') === 0) {
-                return get_string('nativesqlsrvnodriver', 'install');
-            } else {
-                return get_string('nativesqlsrvnonwindows', 'install');
-            }
+            return get_string('nativesqlsrvnodriver', 'install');
         }
         return true;
     }
@@ -186,7 +182,13 @@ class sqlsrv_native_moodle_database extends moodle_database {
         sqlsrv_configure("LogSeverity", SQLSRV_LOG_SEVERITY_ERROR);
 
         $this->store_settings($dbhost, $dbuser, $dbpass, $dbname, $prefix, $dboptions);
-        $this->sqlsrv = sqlsrv_connect($this->dbhost, array
+
+        $host = $this->dbhost;
+        if (!empty($this->dboptions['dbport'])) {
+            $host .= ', ' . $this->dboptions['dbport'];
+        }
+
+        $this->sqlsrv = sqlsrv_connect($host, array
          (
           'UID' => $this->dbuser,
           'PWD' => $this->dbpass,
@@ -203,6 +205,9 @@ class sqlsrv_native_moodle_database extends moodle_database {
 
             throw new dml_connection_exception($dberr);
         }
+
+        // Disable logging until we are fully setup.
+        $this->query_log_prevent();
 
         // Allow quoted identifiers
         $sql = "SET QUOTED_IDENTIFIER ON";
@@ -249,6 +254,9 @@ class sqlsrv_native_moodle_database extends moodle_database {
         $serverinfo = $this->get_server_info();
         // Fetch/offset is supported staring from SQL Server 2012.
         $this->supportsoffsetfetch = $serverinfo['version'] > '11';
+
+        // We can enable logging now.
+        $this->query_log_allow();
 
         // Connection established and configured, going to instantiate the temptables controller
         $this->temptables = new sqlsrv_native_moodle_temptables($this);

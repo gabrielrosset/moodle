@@ -181,8 +181,19 @@ function message_send($eventdata) {
         }
     }
 
-    // Fetch enabled processors
-    $processors = get_message_processors(true);
+    // Fetch enabled processors.
+    // If we are dealing with a message some processors may want to handle it regardless of user and site settings.
+    if (empty($savemessage->notification)) {
+        $processors = array_filter(get_message_processors(false), function($processor) {
+            if ($processor->object->force_process_messages()) {
+                return true;
+            }
+
+            return ($processor->enabled && $processor->configured);
+        });
+    } else {
+        $processors = get_message_processors(true);
+    }
 
     // Preset variables
     $processorlist = array();
@@ -215,7 +226,9 @@ function message_send($eventdata) {
         }
 
         // Populate the list of processors we will be using
-        if ($permitted == 'forced' && $userisconfigured) {
+        if (empty($savemessage->notification) && $processor->object->force_process_messages()) {
+            $processorlist[] = $processor->name;
+        } else if ($permitted == 'forced' && $userisconfigured) {
             // An admin is forcing users to use this message processor. Use this processor unconditionally.
             $processorlist[] = $processor->name;
         } else if ($permitted == 'permitted' && $userisconfigured && !$eventdata->userto->emailstop) {
@@ -232,6 +245,15 @@ function message_send($eventdata) {
                 }
             }
         }
+    }
+
+    // Only cache messages, not notifications.
+    if (empty($savemessage->notification)) {
+        // Cache the timecreated value of the last message between these two users.
+        $cache = cache::make('core', 'message_time_last_message_between_users');
+        $key = \core_message\helper::get_last_message_time_created_cache_key($savemessage->useridfrom,
+            $savemessage->useridto);
+        $cache->set($key, $savemessage->timecreated);
     }
 
     // Store unread message just in case we get a fatal error any time later.

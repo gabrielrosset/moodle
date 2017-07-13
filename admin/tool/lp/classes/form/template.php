@@ -25,6 +25,8 @@
 namespace tool_lp\form;
 defined('MOODLE_INTERNAL') || die();
 
+use core\form\persistent;
+
 /**
  * Learning plan template form.
  *
@@ -58,7 +60,7 @@ class template extends persistent {
         // Description.
         $mform->addElement('editor', 'description',
                            get_string('description', 'tool_lp'), array('rows' => 4));
-        $mform->setType('description', PARAM_RAW);
+        $mform->setType('description', PARAM_CLEANHTML);
         $mform->addElement('selectyesno', 'visible',
                            get_string('visible', 'tool_lp'));
         $mform->addElement('date_time_selector',

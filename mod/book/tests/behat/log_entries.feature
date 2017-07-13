@@ -10,9 +10,7 @@ Feature: In a book, verify log entries
       | fullname | shortname | category | groupmode |
       | Course 1 | C1 | 0 | 1 |
     And I log in as "admin"
-    And I am on site homepage
-    And I follow "Course 1"
-    And I turn editing mode on
+    And I am on "Course 1" course homepage with editing mode on
     When I add a "Book" to section "1" and I fill the form with:
       | Name | Test book |
       | Description | A book about dreams! |
@@ -33,9 +31,9 @@ Feature: In a book, verify log entries
     And I press "Save changes"
     And I click on "Next" "link"
     And I click on "Previous" "link"
-    And I click on "Print book" "link" in the "Administration" "block"
-    And I click on "Generate IMS CP" "link" in the "Administration" "block"
-    And I click on "Logs" "link" in the "Administration" "block"
+    And I navigate to "Print book" in current page administration
+    And I navigate to "Generate IMS CP" in current page administration
+    And I navigate to "Logs" in current page administration
     Then I should see "Book exported"
     And I should see "Book printed"
     And I should see "Chapter viewed" in the "#report_log_r2_c5" "css_element"

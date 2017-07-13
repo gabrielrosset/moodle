@@ -35,6 +35,14 @@
     border-bottom: $border-width solid $table-border-color;
 }
 
+.editor_atto_content.form-control {
+    width: 100%;
+}
+
+#adminsettings .form-control[size] {
+    width: auto;
+}
+
 .mform fieldset.collapsible legend a.fheader {
     padding: 0 5px 0 ($spacer * 1.5);
     margin-left: -($spacer * 1.5);
@@ -116,11 +124,6 @@ div.backup-section + form,
 #fgroup_id_buttonar {
     @extend .form-group;
     padding-left: 0;
-}
-
-.path-admin .buttons,
-.form-buttons { // Add back the padding it would usually get from being inside a .form-horizontal.
-    padding-left: $display1-size;
 }
 
 .form-item .form-setting .defaultsnext > input {
@@ -301,8 +304,14 @@ fieldset.coursesearchbox label {
     font-size: large;
 }
 
+/* Non-bootstrap selects with a size show their contents outside of the element.
+ * Remove when we update to stable bootstrap 4. (MDL-56511) */
+select[size],
 select[multiple] {
     overflow: auto;
+}
+select[size=1] {
+    overflow: visible;
 }
 
 textarea[data-auto-rows] {
@@ -335,4 +344,25 @@ textarea[data-auto-rows] {
     padding: $card-spacer-x;
     margin-left: $grid-gutter-width / 2;
     max-width: 30rem;
+}
+
+/** Atto fields do not have form-control because that would break the layout of the editor.
+    So they need these extra styles to highlight the editor when there is a validation error. */
+.has-danger .editor_atto_content.form-control,
+.has-danger .editor_atto_content.form-control-danger {
+    @include form-control-validation($brand-danger);
+    background-image: $form-icon-danger;
+    padding-right: ($input-padding-x * 3);
+    background-repeat: no-repeat;
+    background-position: center right ($input-height / 4);
+    background-size: ($input-height / 2) ($input-height / 2);
+}
+
+// Styles for the JS file types browser provided by the "filetypes" element.
+[data-filetypesbrowserbody] {
+    [aria-expanded="false"] > [role="group"],
+    [aria-expanded="false"] [data-filetypesbrowserfeature="hideifcollapsed"],
+    [aria-expanded="true"] [data-filetypesbrowserfeature="hideifexpanded"] {
+        display: none;
+    }
 }

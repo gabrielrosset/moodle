@@ -125,9 +125,7 @@ class manager {
 
         } catch (\Horde_Imap_Client_Exception $e) {
             $message = $e->getMessage();
-            mtrace("Unable to connect to IMAP server. Failed with '{$message}'");
-
-            return false;
+            throw new \moodle_exception('imapconnectfailure', 'tool_messageinbound', '', null, $message);
         }
     }
 
@@ -1014,7 +1012,7 @@ class manager {
         $messageparams = new \stdClass();
         $messageparams->html    = $message->html;
         $messageparams->plain   = $message->plain;
-        $messagepreferencesurl = new \moodle_url("/message/edit.php", array('id' => $USER->id));
+        $messagepreferencesurl = new \moodle_url("/message/notificationpreferences.php", array('id' => $USER->id));
         $messageparams->messagepreferencesurl = $messagepreferencesurl->out();
         $htmlmessage = get_string('messageprocessingsuccesshtml', 'tool_messageinbound', $messageparams);
         $plainmessage = get_string('messageprocessingsuccess', 'tool_messageinbound', $messageparams);

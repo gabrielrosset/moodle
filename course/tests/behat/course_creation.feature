@@ -5,7 +5,7 @@ Feature: Managers can create courses
   I need to create courses and set default values on them
 
   @javascript
-  Scenario: Courses are created with the default forum and blocks
+  Scenario: Courses are created with the default announcements forum
     Given the following "users" exist:
       | username | firstname | lastname | email |
       | teacher1 | Teacher | 1 | teacher1@example.com |
@@ -18,19 +18,19 @@ Feature: Managers can create courses
     And I enrol "Student 1" user as "Student"
     And I log out
     When I log in as "teacher1"
-    And I follow "Course 1"
-    And I turn editing mode on
+    And I am on "Course 1" course homepage with editing mode on
     And I add the "Latest announcements" block
     Then "Latest announcements" "block" should exist
     And I follow "Announcements"
     And "Add a new topic" "button" should exist
-    And "Forced subscription" "link" should not exist
+    And "Subscription mode > Forced subscription" "link" should not exist in current page administration
+    And "Subscription mode > Forced subscription" "text" should exist in current page administration
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Announcements"
     And "Add a new topic" "button" should not exist
-    And I should see "Forced subscription" in the "Administration" "block"
+    And "Forced subscription" "text" should exist in current page administration
 
   Scenario: Create a course from the management interface and return to it
     Given the following "courses" exist:

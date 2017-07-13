@@ -99,10 +99,7 @@ class media_videojs_plugin extends core_media_player_native {
         $title = $this->get_name($name, $urls);
         $title = preg_replace(['/&amp;/', '/&gt;/', '/&lt;/'], ['&', '>', '<'], $title);
 
-        // Ensure JS is loaded. This will also load language strings and populate $this->language with the current language.
-        $this->load_amd_module();
         if ($this->youtube) {
-            $this->load_amd_module('Youtube');
             $datasetup[] = '"techOrder": ["youtube"]';
             $datasetup[] = '"sources": [{"type": "video/youtube", "src":"' . $urls[0] . '"}]';
             $sources = ''; // Do not specify <source> tags - it may confuse browser.
@@ -132,10 +129,14 @@ class media_videojs_plugin extends core_media_player_native {
         }
 
         // Attributes for the video/audio tag.
-        static $playercounter = 1;
+        // We use data-setup-lazy as the attribute name for the config instead of
+        // data-setup because data-setup will cause video.js to load the player as soon as the library is loaded,
+        // which is BEFORE we have a chance to load any additional libraries (youtube).
+        // The data-setup-lazy is just a tag name that video.js does not recognise so we can manually initialise
+        // it when we are sure the dependencies are loaded.
         $attributes = [
-            'data-setup' => '{' . join(', ', $datasetup) . '}',
-            'id' => 'id_videojs_' . ($playercounter++),
+            'data-setup-lazy' => '{' . join(', ', $datasetup) . '}',
+            'id' => 'id_videojs_' . uniqid(),
             'class' => get_config('media_videojs', $isaudio ? 'audiocssclass' : 'videocssclass')
         ];
 
@@ -143,6 +144,15 @@ class media_videojs_plugin extends core_media_player_native {
             // Note we ignore limitsize setting if not responsive.
             parent::pick_video_size($width, $height);
             $attributes += ['width' => $width] + ($height ? ['height' => $height] : []);
+        }
+
+        if (core_useragent::is_ios(10)) {
+            // Hides native controls and plays videos inline instead of fullscreen,
+            // see https://github.com/videojs/video.js/issues/3761 and
+            // https://github.com/videojs/video.js/issues/3762 .
+            // iPhone with iOS 9 still displays double controls and plays fullscreen.
+            // iPhone with iOS before 9 display only native controls.
+            $attributes += ['playsinline' => 'true'];
         }
 
         if ($text !== null) {
@@ -247,39 +257,6 @@ class media_videojs_plugin extends core_media_player_native {
     }
 
     /**
-     * Makes sure the player is loaded on the page and the language strings are set.
-     * We only need to do it once on a page.
-     *
-     * @param string $module module to load
-     */
-    protected function load_amd_module($module = 'video') {
-        global $PAGE;
-        if (array_key_exists($module, $this->loadedonpage) && $PAGE === $this->loadedonpage[$module]) {
-            // This is exactly the same page object we used last time.
-            // Prevent from calling multiple times on the same page.
-            return;
-        }
-
-        $contents = '';
-        $alias = '';
-        if ($module === 'video') {
-            $alias = 'videojs';
-            $path = new moodle_url('/media/player/videojs/video-js.swf');
-            $contents .= $alias . '.options.flash.swf = "' . $path . '";' . "\n";
-            $contents .= $this->find_language(current_language());
-        }
-
-        $PAGE->requires->js_amd_inline(<<<EOT
-require(["media_videojs/$module"], function($alias) {
-$contents
-});
-EOT
-        );
-
-        $this->loadedonpage[$module] = $PAGE;
-    }
-
-    /**
      * Tries to match the current language to existing language files
      *
      * Matched language is stored in $this->language
@@ -353,5 +330,28 @@ EOT
         // Middle bit: Video key value.
         $middle = '([a-z0-9\-_]+)';
         return $start . $middle . core_media_player_external::END_LINK_REGEX_PART;
+    }
+
+    /**
+     * Setup page requirements.
+     *
+     * @param moodle_page $page The page we are going to add requirements to.
+     */
+    public function setup($page) {
+
+        // Load dynamic loader. It will scan page for videojs media and load necessary modules.
+        // Loader will be loaded on absolutely every page, however the videojs will only be loaded
+        // when video is present on the page or added later to it in AJAX.
+        $path = new moodle_url('/media/player/videojs/videojs/video-js.swf');
+        $contents = 'videojs.options.flash.swf = "' . $path . '";' . "\n";
+        $contents .= $this->find_language(current_language());
+        $page->requires->js_amd_inline(<<<EOT
+require(["media_videojs/loader"], function(loader) {
+    loader.setUp(function(videojs) {
+        $contents
+    });
+});
+EOT
+        );
     }
 }

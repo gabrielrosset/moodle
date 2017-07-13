@@ -1,4 +1,4 @@
-@mod @mod_scorm @_file_upload @_switch_frame
+@mod @mod_scorm @_file_upload @_switch_iframe
 Feature: Scorm multi-sco completion
   In order to let students access a scorm package
   As a teacher
@@ -19,9 +19,8 @@ Feature: Scorm multi-sco completion
   @javascript
   Scenario: Test completion with a single sco completion.
     When I log in as "teacher1"
-    And I follow "Course 1"
-    And I turn editing mode on
-    And I click on "Edit settings" "link" in the "Administration" "block"
+    And I am on "Course 1" course homepage with editing mode on
+    And I navigate to "Edit settings" in current page administration
     And I set the following fields to these values:
       | Enable completion tracking | Yes |
     And I press "Save and display"
@@ -37,7 +36,7 @@ Feature: Scorm multi-sco completion
     Then I should see "Basic Multi-sco SCORM package"
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Basic Multi-sco SCORM package"
     And I should see "Normal"
     And I press "Enter"
@@ -45,18 +44,19 @@ Feature: Scorm multi-sco completion
     And I should see "Play of the game"
     And I switch to the main frame
     And I follow "Exit activity"
+    And I wait until the page is ready
     Then I should see "Basic Multi-sco SCORM package"
+    And I am on homepage
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     Then "Student 1" user has completed "Basic Multi-sco SCORM package" activity
 
   @javascript
-  Scenario: Test completion with all scos
+  Scenario: Test completion with all scos and correct sco load on re-entry.
     When I log in as "teacher1"
-    And I follow "Course 1"
-    And I turn editing mode on
-    And I click on "Edit settings" "link" in the "Administration" "block"
+    And I am on "Course 1" course homepage with editing mode on
+    And I navigate to "Edit settings" in current page administration
     And I set the following fields to these values:
       | Enable completion tracking | Yes |
     And I press "Save and display"
@@ -72,7 +72,7 @@ Feature: Scorm multi-sco completion
     Then I should see "ADV Multi-sco SCORM package"
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "ADV Multi-sco SCORM package"
     And I should see "Normal"
     And I press "Enter"
@@ -80,22 +80,19 @@ Feature: Scorm multi-sco completion
     And I should see "Play of the game"
     And I switch to the main frame
     And I follow "Exit activity"
+    And I wait until the page is ready
     Then I should see "ADV Multi-sco SCORM package"
+    And I am on homepage
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     Then "Student 1" user has not completed "ADV Multi-sco SCORM package" activity
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "ADV Multi-sco SCORM package"
     And I should see "Normal"
     And I press "Enter"
-    And I switch to "scorm_object" iframe
-    And I should see "Play of the game"
-
-    And I switch to the main frame
-    And I click on "Par?" "list_item"
     And I switch to "scorm_object" iframe
     And I should see "Par"
 
@@ -180,8 +177,10 @@ Feature: Scorm multi-sco completion
     And I should see "Knowledge Check"
     And I switch to the main frame
     And I follow "Exit activity"
+    And I wait until the page is ready
     Then I should see "ADV Multi-sco SCORM package"
+    And I am on homepage
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And "Student 1" user has completed "ADV Multi-sco SCORM package" activity

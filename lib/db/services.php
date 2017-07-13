@@ -42,6 +42,14 @@ $functions = array(
         'ajax'          => true,
         'loginrequired' => false,
     ),
+    'core_auth_request_password_reset' => array(
+        'classname'   => 'core_auth_external',
+        'methodname'  => 'request_password_reset',
+        'description' => 'Requests a password reset.',
+        'type'        => 'write',
+        'ajax'          => true,
+        'loginrequired' => false,
+    ),
     'core_badges_get_user_badges' => array(
         'classname'     => 'core_badges_external',
         'methodname'    => 'get_user_badges',
@@ -56,7 +64,8 @@ $functions = array(
         'description' => 'Create calendar events',
         'classpath' => 'calendar/externallib.php',
         'type' => 'write',
-        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries'
+        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries',
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'core_calendar_delete_calendar_events' => array(
         'classname' => 'core_calendar_external',
@@ -64,7 +73,8 @@ $functions = array(
         'description' => 'Delete calendar events',
         'classpath' => 'calendar/externallib.php',
         'type' => 'write',
-        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries'
+        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries',
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'core_calendar_get_calendar_events' => array(
         'classname' => 'core_calendar_external',
@@ -73,6 +83,36 @@ $functions = array(
         'classpath' => 'calendar/externallib.php',
         'type' => 'read',
         'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries',
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'core_calendar_get_action_events_by_timesort' => array(
+        'classname' => 'core_calendar_external',
+        'methodname' => 'get_calendar_action_events_by_timesort',
+        'description' => 'Get calendar action events by tiemsort',
+        'classpath' => 'calendar/externallib.php',
+        'type' => 'read',
+        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries',
+        'ajax' => true,
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'core_calendar_get_action_events_by_course' => array(
+        'classname' => 'core_calendar_external',
+        'methodname' => 'get_calendar_action_events_by_course',
+        'description' => 'Get calendar action events by course',
+        'classpath' => 'calendar/externallib.php',
+        'type' => 'read',
+        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries',
+        'ajax' => true,
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'core_calendar_get_action_events_by_courses' => array(
+        'classname' => 'core_calendar_external',
+        'methodname' => 'get_calendar_action_events_by_courses',
+        'description' => 'Get calendar action events by courses',
+        'classpath' => 'calendar/externallib.php',
+        'type' => 'read',
+        'capabilities' => 'moodle/calendar:manageentries, moodle/calendar:manageownentries, moodle/calendar:managegroupentries',
+        'ajax' => true,
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'core_cohort_add_cohort_members' => array(
@@ -212,7 +252,7 @@ $functions = array(
         'classname' => 'core_course_external',
         'methodname' => 'duplicate_course',
         'classpath' => 'course/externallib.php',
-        'description' => 'Duplicate an existing course (creating a new one), without user data',
+        'description' => 'Duplicate an existing course (creating a new one).',
         'type' => 'write',
         'capabilities' => 'moodle/backup:backupcourse, moodle/restore:restorecourse, moodle/course:create'
     ),
@@ -249,6 +289,30 @@ $functions = array(
         'description' => 'Return information about a given module name and instance id',
         'type' => 'read',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'core_course_get_module' => array(
+        'classname'   => 'core_course_external',
+        'methodname'  => 'get_module',
+        'classpath'   => 'course/externallib.php',
+        'description' => 'Returns html with one activity module on course page',
+        'type'        => 'read',
+        'ajax'        => true,
+    ),
+    'core_course_edit_module' => array(
+        'classname'   => 'core_course_external',
+        'methodname'  => 'edit_module',
+        'classpath'   => 'course/externallib.php',
+        'description' => 'Performs an action on course module (change visibility, duplicate, delete, etc.)',
+        'type'        => 'write',
+        'ajax'        => true,
+    ),
+    'core_course_edit_section' => array(
+        'classname'   => 'core_course_external',
+        'methodname'  => 'edit_section',
+        'classpath'   => 'course/externallib.php',
+        'description' => 'Performs an action on course section (change visibility, set marker, delete)',
+        'type'        => 'write',
+        'ajax'        => true,
     ),
     'core_course_get_courses' => array(
         'classname' => 'core_course_external',
@@ -306,7 +370,8 @@ $functions = array(
         'classname' => 'core_course_external',
         'methodname' => 'get_activities_overview',
         'classpath' => 'course/externallib.php',
-        'description' => 'Return activities overview for the given courses.',
+        'description' => '** DEPRECATED ** Please do not call this function any more.
+                          Return activities overview for the given courses.',
         'type' => 'read',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
@@ -340,6 +405,15 @@ $functions = array(
         'methodname' => 'check_updates',
         'classpath' => 'course/externallib.php',
         'description' => 'Check if there is updates affecting the user for the given course and contexts.',
+        'type' => 'read',
+        'ajax' => true,
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'core_course_get_updates_since' => array(
+        'classname' => 'core_course_external',
+        'methodname' => 'get_updates_since',
+        'classpath' => 'course/externallib.php',
+        'description' => 'Check if there are updates affecting the user for the given course since the given time stamp.',
         'type' => 'read',
         'ajax' => true,
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
@@ -403,6 +477,15 @@ $functions = array(
         'type'        => 'write',
         'classpath'   => 'files/externallib.php',
     ),
+    'core_form_get_filetypes_browser_data' => array(
+        'classname' => 'core_form\external',
+        'methodname' => 'get_filetypes_browser_data',
+        'classpath' => '',
+        'description' => 'Provides data for the filetypes element browser.',
+        'type' => 'read',
+        'loginrequired' => false,
+        'ajax' => true,
+    ),
     'core_get_component_strings' => array(
         'classname' => 'core_external',
         'methodname' => 'get_component_strings',
@@ -438,6 +521,14 @@ $functions = array(
         'description' => 'Return some translated strings - like several core get_string(), calls',
         'type' => 'read',
         'loginrequired' => false,
+        'ajax' => true,
+    ),
+    'core_get_user_dates' => array(
+        'classname' => 'core_external',
+        'methodname' => 'get_user_dates',
+        'classpath' => 'lib/external/externallib.php',
+        'description' => 'Return formatted timestamps',
+        'type' => 'read',
         'ajax' => true,
     ),
     'core_grades_get_grades' => array(
@@ -693,6 +784,7 @@ $functions = array(
         'description' => 'Retrieve the template data for the conversation list',
         'type' => 'read',
         'ajax' => true,
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'core_message_data_for_messagearea_contacts' => array(
         'classname' => 'core_message_external',
@@ -701,6 +793,7 @@ $functions = array(
         'description' => 'Retrieve the template data for the contact list',
         'type' => 'read',
         'ajax' => true,
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'core_message_data_for_messagearea_messages' => array(
         'classname' => 'core_message_external',
@@ -709,6 +802,7 @@ $functions = array(
         'description' => 'Retrieve the template data for the messages',
         'type' => 'read',
         'ajax' => true,
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
     'core_message_data_for_messagearea_get_most_recent_message' => array(
         'classname' => 'core_message_external',
@@ -897,6 +991,14 @@ $functions = array(
         'classname' => 'core\output\external',
         'methodname' => 'load_template',
         'description' => 'Load a template for a renderable',
+        'type' => 'read',
+        'loginrequired' => false,
+        'ajax' => true,
+    ),
+    'core_output_load_fontawesome_icon_map' => array(
+        'classname' => 'core\output\external',
+        'methodname' => 'load_fontawesome_icon_map',
+        'description' => 'Load the mapping of names to icons',
         'type' => 'read',
         'loginrequired' => false,
         'ajax' => true,
@@ -1110,6 +1212,15 @@ $functions = array(
         'classpath' => 'user/externallib.php',
         'description' => 'Agree the site policy for the current user.',
         'type' => 'write',
+        'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
+    'core_user_get_private_files_info' => array(
+        'classname' => 'core_user_external',
+        'methodname' => 'get_private_files_info',
+        'classpath' => 'user/externallib.php',
+        'description' => 'Returns general information about files in the user private files area.',
+        'type' => 'read',
+        'capabilities' => 'moodle/user:manageownfiles',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
     ),
 
@@ -1860,7 +1971,17 @@ $functions = array(
         'description' => 'Return some site info / user info / list web service functions',
         'type' => 'read',
         'services' => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
-    )
+    ),
+
+    // Blocks functions.
+    'core_block_get_course_blocks' => array(
+        'classname'     => 'core_block_external',
+        'methodname'    => 'get_course_blocks',
+        'description'   => 'Returns blocks information for a course.',
+        'type'          => 'read',
+        'capabilities'  => '',
+        'services'      => array(MOODLE_OFFICIAL_MOBILE_SERVICE),
+    ),
 );
 
 $services = array(

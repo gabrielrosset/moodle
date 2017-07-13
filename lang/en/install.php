@@ -194,7 +194,6 @@ $string['nativesqlsrv'] = 'SQL*Server Microsoft (native/sqlsrv)';
 $string['nativesqlsrvhelp'] = 'Now you need to configure the database where most Moodle data will be stored.
 This database must already have been created and a username and password created to access it. Table prefix is mandatory.';
 $string['nativesqlsrvnodriver'] = 'Microsoft Drivers for SQL Server for PHP are not installed or not configured properly.';
-$string['nativesqlsrvnonwindows'] = 'Microsoft Drivers for SQL Server for PHP are available only for Windows OS.';
 $string['ociextensionisnotpresentinphp'] = 'PHP has not been properly configured with the OCI8 extension so that it can communicate with Oracle.  Please check your php.ini file or recompile PHP.';
 $string['pass'] = 'Pass';
 $string['paths'] = 'Paths';
@@ -219,10 +218,9 @@ $string['pathswrongadmindir'] = 'Admin directory does not exist';
 $string['pgsqlextensionisnotpresentinphp'] = 'PHP has not been properly configured with the PGSQL extension so that it can communicate with PostgreSQL.  Please check your php.ini file or recompile PHP.';
 $string['phpextension'] = '{$a} PHP extension';
 $string['phpversion'] = 'PHP version';
-$string['phpversionhelp'] = '<p>Moodle requires a PHP version of at least 4.3.0 or 5.1.0 (5.0.x has a number of known problems).</p>
-<p>You are currently running version {$a}</p>
-<p>You must upgrade PHP or move to a host with a newer version of PHP!<br />
-(In case of 5.0.x you could also downgrade to 4.4.x version)</p>';
+$string['phpversionhelp'] = '<p>Moodle requires a PHP version of at least 5.6.5 or 7.1 (7.0.x has some engine limitations).</p>
+<p>You are currently running version {$a}.</p>
+<p>You must upgrade PHP or move to a host with a newer version of PHP.</p>';
 $string['releasenoteslink'] = 'For information about this version of Moodle, please see the release notes at {$a}';
 $string['safemode'] = 'Safe mode';
 $string['safemodeerror'] = 'Moodle may have trouble with safe mode on';

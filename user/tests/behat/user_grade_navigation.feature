@@ -28,8 +28,8 @@ Feature: The student can navigate to their grades page and user grade report.
       | assign | C1 | a3 | Test assignment three | Submit something! | 150 |
       | assign | C2 | a4 | Test assignment four | Submit something! | 150 |
     And I log in as "teacher1"
-    And I follow "Course 1"
-    And I click on "Grades" "link" in the "Navigation" "block"
+    And I am on "Course 1" course homepage
+    And I navigate to "View > Grader report" in the course gradebook
     And I turn editing mode on
     And I give the grade "150.00" to the user "Student 1" for the grade item "Test assignment one"
     And I give the grade "67.00" to the user "Student 1" for the grade item "Test assignment two"
@@ -38,7 +38,7 @@ Feature: The student can navigate to their grades page and user grade report.
 
   Scenario: Navigation to Grades and the user grade report.
     When I log in as "student1"
-    And I follow "Grades"
+    And I follow "Grades" in the user menu
     Then the following should exist in the "overview-grade" table:
     | Course name | Grade |
     | Course 2 | - |
@@ -58,7 +58,7 @@ Feature: The student can navigate to their grades page and user grade report.
     And I log out
     And I log in as "student1"
     And I follow "Student 1"
-    And I follow "Grades"
+    And I follow "Grades" in the user menu
     Then I should see "My badges from Acceptance test site web site"
 
   Scenario: Log in as a parent and view a childs grades.
@@ -89,7 +89,7 @@ Feature: The student can navigate to their grades page and user grade report.
     And I log in as "parent1"
     And I am on site homepage
     And I follow "Student 1"
-    And I navigate to "Grades" node in "Users > Student 1"
+    And I follow "Grades overview"
     Then the following should exist in the "overview-grade" table:
     | Course name | Grade |
     | Course 2 | - |

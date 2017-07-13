@@ -31,7 +31,7 @@ Feature: Allow students to redo questions in a practice quiz, without starting a
       | TF1      | 1    | 2       |
       | TF2      | 1    | 1       |
     And I log in as "student"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
 
   @javascript
   Scenario: After completing a question, there is a redo question button that restarts the question
@@ -51,7 +51,7 @@ Feature: Allow students to redo questions in a practice quiz, without starting a
     And I click on "Check" "button" in the "First question" "question"
     And I log out
     And I log in as "teacher"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Quiz 1"
     And I follow "Attempts: 1"
     And I follow "Review attempt"
@@ -80,7 +80,7 @@ Feature: Allow students to redo questions in a practice quiz, without starting a
     And I click on "Submit all and finish" "button" in the "Confirmation" "dialogue"
     And I log out
     And I log in as "teacher"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Quiz 1"
     And I follow "Attempts: 1"
     And I follow "Review attempt"
@@ -92,7 +92,7 @@ Feature: Allow students to redo questions in a practice quiz, without starting a
     And I switch to the main window
     And the state of "First question" question is shown as "Not answered"
     And I should not see "Submit" in the ".history" "css_element"
-    And I navigate to "Statistics" node in "Quiz administration > Results"
+    And I navigate to "Results > Statistics" in current page administration
     And I follow "TF1"
     And "False" row "Frequency" column of "quizresponseanalysis" table should contain "100.00%"
     And "True" row "Frequency" column of "quizresponseanalysis" table should contain "0.00%"

@@ -71,9 +71,10 @@ class feedback_item_multichoice extends feedback_item_base {
     public function save_item() {
         global $DB;
 
-        if (!$item = $this->item_form->get_data()) {
+        if (!$this->get_data()) {
             return false;
         }
+        $item = $this->item;
 
         if (isset($item->clone_item) AND $item->clone_item) {
             $item->id = ''; //to clone this item
@@ -342,6 +343,8 @@ class feedback_item_multichoice extends feedback_item_base {
                     $objs[] = ['advcheckbox', $inputname.'['.$idx.']', '', $label, null, array(0, $idx)];
                     $form->set_element_type($inputname.'['.$idx.']', PARAM_INT);
                 }
+                // Span to hold the element id. The id is used for drag and drop reordering.
+                $objs[] = ['static', '', '', html_writer::span('', '', ['id' => 'feedback_item_' . $item->id])];
                 $element = $form->add_form_group_element($item, 'group_'.$inputname, $name, $objs, $separator, $class);
                 if ($tmpvalue) {
                     foreach (explode(FEEDBACK_MULTICHOICE_LINE_SEP, $tmpvalue) as $v) {
@@ -350,11 +353,18 @@ class feedback_item_multichoice extends feedback_item_base {
                 }
             } else {
                 // Radio.
+                if (!array_key_exists(0, $options)) {
+                    // Always add '0' as hidden element, otherwise form submit data may not have this element.
+                    $objs[] = ['hidden', $inputname.'[0]'];
+                }
                 foreach ($options as $idx => $label) {
                     $objs[] = ['radio', $inputname.'[0]', '', $label, $idx];
                 }
+                // Span to hold the element id. The id is used for drag and drop reordering.
+                $objs[] = ['static', '', '', html_writer::span('', '', ['id' => 'feedback_item_' . $item->id])];
                 $element = $form->add_form_group_element($item, 'group_'.$inputname, $name, $objs, $separator, $class);
                 $form->set_element_default($inputname.'[0]', $tmpvalue);
+                $form->set_element_type($inputname.'[0]', PARAM_INT);
             }
         }
 
@@ -462,5 +472,27 @@ class feedback_item_multichoice extends feedback_item_base {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Return the analysis data ready for external functions.
+     *
+     * @param stdClass $item     the item (question) information
+     * @param int      $groupid  the group id to filter data (optional)
+     * @param int      $courseid the course id (optional)
+     * @return array an array of data with non scalar types json encoded
+     * @since  Moodle 3.3
+     */
+    public function get_analysed_for_external($item, $groupid = false, $courseid = false) {
+
+        $externaldata = array();
+        $data = $this->get_analysed($item, $groupid, $courseid);
+
+        if (!empty($data[2]) && is_array($data[2])) {
+            foreach ($data[2] as $d) {
+                $externaldata[] = json_encode($d);
+            }
+        }
+        return $externaldata;
     }
 }

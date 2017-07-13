@@ -44,17 +44,22 @@ abstract class spout_base extends \core\dataformat\base {
     /** @var $sheettitle */
     protected $sheettitle;
 
+    /** @var $renamecurrentsheet */
+    protected $renamecurrentsheet = false;
+
     /**
      * Output file headers to initialise the download of the file.
      */
     public function send_http_headers() {
         $this->writer = \Box\Spout\Writer\WriterFactory::create($this->spouttype);
+        if (method_exists($this->writer, 'setTempFolder')) {
+            $this->writer->setTempFolder(make_request_directory());
+        }
         $filename = $this->filename . $this->get_extension();
         $this->writer->openToBrowser($filename);
-        if ($this->sheettitle && $this->writer instanceof \Box\Spout\Writer\AbstractMultiSheetsWriter) {
-            $sheet = $this->writer->getCurrentSheet();
-            $sheet->setName($this->sheettitle);
-        }
+
+        // By default one sheet is always created, but we want to rename it when we call start_sheet().
+        $this->renamecurrentsheet = true;
     }
 
     /**
@@ -65,18 +70,24 @@ abstract class spout_base extends \core\dataformat\base {
      * @param string $title
      */
     public function set_sheettitle($title) {
-        if (!$title) {
-            return;
-        }
         $this->sheettitle = $title;
     }
 
     /**
-     * Write the start of the format
+     * Write the start of the sheet we will be adding data to.
      *
      * @param array $columns
      */
-    public function write_header($columns) {
+    public function start_sheet($columns) {
+        if ($this->sheettitle && $this->writer instanceof \Box\Spout\Writer\AbstractMultiSheetsWriter) {
+            if ($this->renamecurrentsheet) {
+                $sheet = $this->writer->getCurrentSheet();
+                $this->renamecurrentsheet = false;
+            } else {
+                $sheet = $this->writer->addNewSheetAndMakeItCurrent();
+            }
+            $sheet->setName($this->sheettitle);
+        }
         $this->writer->addRow(array_values((array)$columns));
     }
 
@@ -91,13 +102,10 @@ abstract class spout_base extends \core\dataformat\base {
     }
 
     /**
-     * Write the end of the format
-     *
-     * @param array $columns
+     * Write the end of the file.
      */
-    public function write_footer($columns) {
+    public function close_output() {
         $this->writer->close();
         $this->writer = null;
     }
-
 }

@@ -27,15 +27,15 @@ Feature: Teacher can modify choices of the students
   @javascript
   Scenario: Delete students choice response as a teacher
     When I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I choose "Option 1" from "Choice name" choice activity
     Then I should see "Your selection: Option 1"
     And I should see "Your choice has been saved"
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Choice name"
-    And I click on "View 1 responses" "link" in the "Administration" "block"
+    And I navigate to "View 1 responses" in current page administration
     And I click on "Student 1 Option 1" "checkbox"
     And I select "Delete" from the "With selected" singleselect
     And "Student 1 Option 1" "checkbox" should not exist
@@ -45,15 +45,15 @@ Feature: Teacher can modify choices of the students
   @javascript
   Scenario: Teacher set answers of students who did not respond or change existing answers
     When I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I choose "Option 1" from "Choice name" choice activity
     Then I should see "Your selection: Option 1"
     And I should see "Your choice has been saved"
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Choice name"
-    And I click on "View 1 responses" "link" in the "Administration" "block"
+    And I navigate to "View 1 responses" in current page administration
     And I click on "Student 1 Option 1" "checkbox"
     And I click on "Student 2 Not answered yet" "checkbox"
     And I click on "Student 3 Not answered yet" "checkbox"
@@ -69,29 +69,29 @@ Feature: Teacher can modify choices of the students
   @javascript
   Scenario: Teacher can delete answers in the multiple answer choice
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Choice name"
-    And I click on "Edit settings" "link" in the "Administration" "block"
+    And I navigate to "Edit settings" in current page administration
     And I set the field "Allow more than one choice to be selected" to "Yes"
     And I press "Save and return to course"
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I choose options "Option 1","Option 2" from "Choice name" choice activity
     And I should see "Your selection: Option 1; Option 2"
     And I should see "Your choice has been saved"
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Choice name"
-    And I click on "View 1 responses" "link" in the "Administration" "block"
+    And I navigate to "View 1 responses" in current page administration
     And I click on "Student 1 Option 2" "checkbox"
     And I select "Delete" from the "With selected" singleselect
     And I click on "Student 1 Option 1" "checkbox"
     And I select "Choose: Option 3" from the "With selected" singleselect
     And I log out
     And I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Choice name"
     And I should see "Your selection: Option 1; Option 3"
     And I log out
@@ -99,15 +99,15 @@ Feature: Teacher can modify choices of the students
   @javascript
   Scenario: Teacher can manage answers on view page if the names are displayed
     When I log in as "student1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I choose "Option 1" from "Choice name" choice activity
     Then I should see "Your selection: Option 1"
     And I should see "Your choice has been saved"
     And I log out
     And I log in as "teacher1"
-    And I follow "Course 1"
+    And I am on "Course 1" course homepage
     And I follow "Choice name"
-    And I click on "Edit settings" "link" in the "Administration" "block"
+    And I navigate to "Edit settings" in current page administration
     And I set the following fields to these values:
       | Publish results | Always show results to students |
       | Privacy of results | Publish full results, showing names and their choices |

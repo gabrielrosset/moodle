@@ -120,20 +120,25 @@ class feedback_item_captcha extends feedback_item_base {
         $inputname = $item->typ . '_' . $item->id;
 
         if ($form->get_mode() != mod_feedback_complete_form::MODE_COMPLETE) {
+            // Span to hold the element id. The id is used for drag and drop reordering.
             $form->add_form_element($item,
-                    ['static', $inputname, $name],
+                    ['static', $inputname, $name, html_writer::span('', '', ['id' => 'feedback_item_' . $item->id])],
                     false,
                     false);
         } else {
+            // Add recaptcha element that is used during the form validation.
             $form->add_form_element($item,
-                    ['recaptcha', $inputname, $name],
+                    ['recaptcha', $inputname . 'recaptcha', $name],
                     false,
                     false);
+            // Add hidden element with value "1" that will be saved in the values table after completion.
+            $form->add_form_element($item, ['hidden', $inputname, 1], false);
+            $form->set_element_type($inputname, PARAM_INT);
         }
 
         // Add recaptcha validation to the form.
         $form->add_validation_rule(function($values, $files) use ($item, $form) {
-            $elementname = $item->typ . '_' . $item->id;
+            $elementname = $item->typ . '_' . $item->id . 'recaptcha';
             $recaptchaelement = $form->get_form_element($elementname);
             if (empty($values['recaptcha_response_field'])) {
                 return array($elementname => get_string('required'));
@@ -182,5 +187,32 @@ class feedback_item_captcha extends feedback_item_base {
         $actions = parent::edit_actions($item, $feedback, $cm);
         unset($actions['update']);
         return $actions;
+    }
+
+    public function get_data_for_external($item) {
+        global $CFG;
+
+        if (empty($CFG->recaptchaprivatekey) || empty($CFG->recaptchapublickey)) {
+            return null;
+        }
+
+        require_once($CFG->libdir . '/recaptchalib.php');
+        // We return the public key, maybe we want to use the javascript api to get the image.
+        $data = recaptcha_get_challenge_hash_and_urls(RECAPTCHA_API_SECURE_SERVER, $CFG->recaptchapublickey);
+        $data[] = $CFG->recaptchapublickey;
+        return json_encode($data);
+    }
+
+    /**
+     * Return the analysis data ready for external functions.
+     *
+     * @param stdClass $item     the item (question) information
+     * @param int      $groupid  the group id to filter data (optional)
+     * @param int      $courseid the course id (optional)
+     * @return array an array of data with non scalar types json encoded
+     * @since  Moodle 3.3
+     */
+    public function get_analysed_for_external($item, $groupid = false, $courseid = false) {
+        return [];
     }
 }

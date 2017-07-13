@@ -232,6 +232,9 @@ class moodle_page {
      */
     protected $_requires = null;
 
+    /** @var page_requirements_manager Saves the requirement manager object used before switching to to fragments one. */
+    protected $savedrequires = null;
+
     /**
      * @var string The capability required by the user in order to edit blocks
      * and block settings on this page.
@@ -890,10 +893,22 @@ class moodle_page {
         // JavaScript for the fragment to be collected. _wherethemewasinitialised is set when header() is called.
         if (!empty($this->_wherethemewasinitialised)) {
             // Change the current requirements manager over to the fragment manager to capture JS.
+            $this->savedrequires = $this->_requires;
             $this->_requires = new fragment_requirements_manager();
         } else {
             throw new coding_exception('$OUTPUT->header() needs to be called before collecting JavaScript requirements.');
         }
+    }
+
+    /**
+     * Switches back from collecting fragment JS requirement to the original requirement manager
+     */
+    public function end_collecting_javascript_requirements() {
+        if ($this->savedrequires === null) {
+            throw new coding_exception('JavaScript collection has not been started.');
+        }
+        $this->_requires = $this->savedrequires;
+        $this->savedrequires = null;
     }
 
     /**
@@ -1597,6 +1612,11 @@ class moodle_page {
                 $target = RENDERER_TARGET_MAINTENANCE;
             }
             $OUTPUT = $this->get_renderer('core', null, $target);
+        }
+
+        if (!during_initial_install()) {
+            $filtermanager = filter_manager::instance();
+            $filtermanager->setup_page_for_globally_available_filters($this);
         }
 
         $this->_wherethemewasinitialised = debug_backtrace();

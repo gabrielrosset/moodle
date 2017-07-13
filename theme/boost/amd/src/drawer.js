@@ -63,6 +63,10 @@ define(['jquery', 'core/custom_interaction_events', 'core/log'],
         }.bind(this));
 
         this.registerEventListeners();
+        var small = $(document).width() < 768;
+        if (small) {
+            this.closeAll();
+        }
     };
 
     Drawer.prototype.closeAll = function() {
@@ -79,7 +83,7 @@ define(['jquery', 'core/custom_interaction_events', 'core/log'],
             drawer.attr('aria-hidden', 'true');
             drawer.addClass('closed');
             M.util.set_user_preference(preference, 'false');
-        }.bind(this));
+        });
     };
 
     /**
@@ -99,13 +103,14 @@ define(['jquery', 'core/custom_interaction_events', 'core/log'],
         body.addClass('drawer-ease');
         var open = trigger.attr('aria-expanded') == 'true';
         if (!open) {
-            var small = $(document).width() < 512;
+            var small = $(document).width() < 768;
             if (small) {
                 this.closeAll();
             }
             // Open.
             trigger.attr('aria-expanded', 'true');
             drawer.attr('aria-hidden', 'false');
+            drawer.focus();
             body.addClass('drawer-open-' + side);
             drawer.removeClass('closed');
             M.util.set_user_preference(preference, 'true');
@@ -123,6 +128,7 @@ define(['jquery', 'core/custom_interaction_events', 'core/log'],
      * Prevent the page from scrolling when the drawer is at max scroll.
      *
      * @method preventPageScroll
+     * @param  {Event} e
      */
     Drawer.prototype.preventPageScroll = function(e) {
         var delta = e.wheelDelta || (e.originalEvent && e.originalEvent.wheelDelta) || -e.originalEvent.detail,

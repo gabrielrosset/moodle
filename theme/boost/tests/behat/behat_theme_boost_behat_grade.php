@@ -44,7 +44,8 @@ class behat_theme_boost_behat_grade extends behat_grade {
 
         $savechanges = get_string('savechanges', 'grades');
         $edit = behat_context_helper::escape(get_string('edit') . '  ');
-        $linkxpath = "//a[./img[starts-with(@title,$edit) and contains(@title,$gradeitem)]]";
+        $linkxpath = "//a[./*[contains(concat(' ', normalize-space(@class), ' '), ' icon ') " .
+            "and starts-with(@title,$edit) and contains(@title,$gradeitem)]]";
 
         $this->execute("behat_general::i_click_on", array($this->escape($linkxpath), "xpath_element"));
         $this->execute("behat_forms::i_set_the_following_fields_to_these_values", $data);
@@ -67,7 +68,8 @@ class behat_theme_boost_behat_grade extends behat_grade {
         // Going to edit calculation.
         $savechanges = get_string('savechanges', 'grades');
         $edit = behat_context_helper::escape(get_string('editcalculation', 'grades'));
-        $linkxpath = "//a[./img[starts-with(@title,$edit) and contains(@title,$gradeitem)]]";
+        $linkxpath = "//a[./*[contains(concat(' ', normalize-space(@class), ' '), ' icon ') " .
+            "and starts-with(@title,$edit) and contains(@title,$gradeitem)]]";
         $this->execute("behat_general::i_click_on", array($this->escape($linkxpath), "xpath_element"));
 
         // Mapping names to idnumbers.
@@ -106,7 +108,8 @@ class behat_theme_boost_behat_grade extends behat_grade {
         // Going to edit calculation.
         $savechanges = get_string('savechanges', 'grades');
         $edit = behat_context_helper::escape(get_string('editcalculation', 'grades'));
-        $linkxpath = "//a[./img[starts-with(@title,$edit) and contains(@title,$gradeitem)]]";
+        $linkxpath = "//a[./*[contains(concat(' ', normalize-space(@class), ' '), ' icon ') " .
+            "and starts-with(@title,$edit) and contains(@title,$gradeitem)]]";
         $this->execute("behat_general::i_click_on", array($this->escape($linkxpath), "xpath_element"));
 
         // Mapping names to idnumbers.
@@ -144,5 +147,15 @@ class behat_theme_boost_behat_grade extends behat_grade {
 
         $linktext = get_string('resetweights', 'grades', (object)array('itemname' => $gradeitem));
         $this->execute("behat_general::i_click_on", array($this->escape($linktext), "link"));
+    }
+
+    public function i_navigate_to_in_the_course_gradebook($gradepath) {
+        // If we are not on one of the gradebook pages already, follow "Grades" link in the navigation drawer.
+        $xpath = '//div[contains(@class,\'grade-navigation\')]';
+        if (!$this->getSession()->getPage()->findAll('xpath', $xpath)) {
+            $this->execute('behat_navigation::i_select_from_flat_navigation_drawer', get_string('grades'));
+        }
+
+        $this->select_in_gradebook_tabs($gradepath);
     }
 }

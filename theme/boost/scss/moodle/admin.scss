@@ -17,14 +17,17 @@
 .environmenttable {
     .warn {
         background-color: $state-warning-bg;
+        color: $state-warning-text;
     }
 
     .error {
         background-color: $state-danger-bg;
+        color: $state-danger-text;
     }
 
     .ok {
         background-color: $state-success-bg;
+        color: $state-success-text;
     }
 }
 
@@ -178,17 +181,6 @@
 #page-admin-roles-define .definenotice {
     margin: 1em 10% 2em 10%;
     text-align: left;
-}
-
-#notice {
-    width: 60%;
-    min-width: 220px;
-    margin: auto;
-    text-align: center;
-
-    .buttons {
-        padding: 0;
-    }
 }
 
 #page-admin-index .releasenoteslink,
@@ -803,4 +795,13 @@
 
 #adminsettings .form-overridden {
     @extend .form-control-feedback;
+    @extend .alert-info;
+}
+
+.modal.modal-in-page {
+    z-index: 0;
+}
+
+#overriderolestable .overriddenpermission {
+    @extend .table-warning;
 }

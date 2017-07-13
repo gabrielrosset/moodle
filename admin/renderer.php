@@ -1612,10 +1612,10 @@ class core_admin_renderer extends plugin_renderer_base {
                 $row = new html_table_row();
                 $row->attributes['class'] = 'type-' . $plugin->type . ' name-' . $plugin->type . '_' . $plugin->name;
 
-                if ($this->page->theme->resolve_image_location('icon', $plugin->type . '_' . $plugin->name)) {
+                if ($this->page->theme->resolve_image_location('icon', $plugin->type . '_' . $plugin->name, null)) {
                     $icon = $this->output->pix_icon('icon', '', $plugin->type . '_' . $plugin->name, array('class' => 'icon pluginicon'));
                 } else {
-                    $icon = $this->output->pix_icon('spacer', '', 'moodle', array('class' => 'icon pluginicon noicon'));
+                    $icon = $this->output->spacer();
                 }
                 $status = $plugin->get_status();
                 $row->attributes['class'] .= ' status-'.$status;
@@ -1899,14 +1899,21 @@ class core_admin_renderer extends plugin_renderer_base {
                 } else {
                     $report = $this->doc_link(join($linkparts, '/'), get_string($stringtouse, 'admin', $rec));
                 }
+                // Enclose report text in div so feedback text will be displayed underneath it.
+                $report = html_writer::div($report);
 
                 // Format error or warning line
-                if ($errorline || $warningline) {
-                    $messagetype = $errorline? 'error':'warn';
+                if ($errorline) {
+                    $messagetype = 'error';
+                    $statusclass = 'label-important';
+                } else if ($warningline) {
+                    $messagetype = 'warn';
+                    $statusclass = 'label-warning';
                 } else {
                     $messagetype = 'ok';
+                    $statusclass = 'label-success';
                 }
-                $status = '<span class="'.$messagetype.'">'.$status.'</span>';
+                $status = html_writer::span($status, 'label ' . $statusclass);
                 // Here we'll store all the feedback found
                 $feedbacktext = '';
                 // Append the feedback if there is some

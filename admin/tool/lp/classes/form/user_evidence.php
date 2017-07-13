@@ -25,6 +25,8 @@
 namespace tool_lp\form;
 defined('MOODLE_INTERNAL') || die();
 
+use core\form\persistent;
+
 /**
  * User evidence form class.
  *
@@ -54,7 +56,7 @@ class user_evidence extends persistent {
         $mform->addRule('name', get_string('maximumchars', '', 100), 'maxlength', 100, 'client');
         // Description.
         $mform->addElement('editor', 'description', get_string('userevidencedescription', 'tool_lp'), array('rows' => 10));
-        $mform->setType('description', PARAM_RAW);
+        $mform->setType('description', PARAM_CLEANHTML);
 
         $mform->addElement('url', 'url', get_string('userevidenceurl', 'tool_lp'), array('size' => '60'), array('usefilepicker' => false));
         $mform->setType('url', PARAM_RAW_TRIMMED);      // Can not use PARAM_URL, it silently converts bad URLs to ''.

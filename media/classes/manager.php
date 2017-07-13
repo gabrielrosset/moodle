@@ -39,7 +39,7 @@ defined('MOODLE_INTERNAL') || die();
  * @author    2011 The Open University
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class core_media_manager {
+final class core_media_manager {
     /**
      * Option: Disable text link fallback.
      *
@@ -95,18 +95,62 @@ class core_media_manager {
     private $embeddablemarkers;
 
     /** @var core_media_manager caches a singleton instance */
-    static protected $instance;
+    static private $instance;
+
+    /** @var moodle_page page this instance was initialised for */
+    private $page;
 
     /**
      * Returns a singleton instance of a manager
      *
+     * Note as of Moodle 3.3, this will call setup for you.
+     *
      * @return core_media_manager
      */
-    public static function instance() {
-        if (self::$instance === null) {
-            self::$instance = new self();
+    public static function instance($page = null) {
+        // Use the passed $page if given, otherwise the $PAGE global.
+        if (!$page) {
+            global $PAGE;
+            $page = $PAGE;
+        }
+        if (self::$instance === null || ($page && self::$instance->page !== $page)) {
+            self::$instance = new self($page);
         }
         return self::$instance;
+    }
+
+    /**
+     * Construct a new core_media_manager instance
+     *
+     * @param moodle_page $page The page we are going to add requirements to.
+     * @see core_media_manager::instance()
+     */
+    private function __construct($page) {
+        if ($page) {
+            $this->page = $page;
+            $players = $this->get_players();
+            foreach ($players as $player) {
+                $player->setup($page);
+            }
+        } else {
+            debugging('Could not determine the $PAGE. Media plugins will not be set up', DEBUG_DEVELOPER);
+        }
+    }
+
+    /**
+     * Setup page requirements.
+     *
+     * This should must only be called once per page request.
+     *
+     * @deprecated Moodle 3.3, The setup is now done in ::instance() so there is no need to call this
+     * @param moodle_page $page The page we are going to add requirements to.
+     * @see core_media_manager::instance()
+     * @todo MDL-57632 final deprecation
+     */
+    public function setup($page) {
+        debugging('core_media_manager::setup() is deprecated.' .
+                  'You only need to call core_media_manager::instance() now', DEBUG_DEVELOPER);
+        // No need to call ::instance from here, because the instance has already be set up.
     }
 
     /**
@@ -125,45 +169,20 @@ class core_media_manager {
      *
      * @return core_media_player[] Array of core_media_player objects in rank order
      */
-    protected function get_players() {
+    private function get_players() {
         // Save time by only building the list once.
         if (!$this->players) {
-            // Get raw list of players.
-            $allplayers = $this->get_players_raw();
             $sortorder = \core\plugininfo\media::get_enabled_plugins();
 
             $this->players = [];
-            foreach ($sortorder as $key) {
-                if (array_key_exists($key, $allplayers)) {
-                    $this->players[] = $allplayers[$key];
+            foreach ($sortorder as $name) {
+                $classname = "media_" . $name . "_plugin";
+                if (class_exists($classname)) {
+                    $this->players[] = new $classname();
                 }
             }
         }
         return $this->players;
-    }
-
-    /**
-     * Obtains a raw list of player objects that includes objects regardless
-     * of whether they are disabled or not, and without sorting.
-     *
-     * You can override this in a subclass if you need to add additional_
-     * players.
-     *
-     * The return array is be indexed by player name to make it easier to
-     * remove players in a subclass.
-     *
-     * @return array $players Array of core_media_player objects in any order
-     */
-    protected function get_players_raw() {
-        $plugins = core_plugin_manager::instance()->get_plugins_of_type('media');
-        $rv = [];
-        foreach ($plugins as $name => $dir) {
-            $classname = "media_" . $name . "_plugin";
-            if (class_exists($classname)) {
-                $rv[$name] = new $classname();
-            }
-        }
-        return $rv;
     }
 
     /**
@@ -279,7 +298,7 @@ class core_media_manager {
      * @param array $options Options array
      * @return string HTML code for embed
      */
-    protected function fallback_to_link($urls, $name, $options) {
+    private function fallback_to_link($urls, $name, $options) {
         // If link is turned off, return empty.
         if (!empty($options[self::OPTION_NO_LINK])) {
             return '';
